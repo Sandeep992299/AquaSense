@@ -1,0 +1,5 @@
+{
+  "artifactType": "ARTIFACT_TYPE_WALKTHROUGH",
+  "summary": "A full visual demonstration document for the AquaSense Smart Utilities Platform. Covers every screen of the Customer Portal (login, dashboard, water usage, energy, alerts, reports, smart meters) and every tab of the AWS Backend Infrastructure Dashboard (overview, IoT Core, Lambda, storage, CloudWatch). Includes real screenshots, feature annotations, service status summary, and a step-by-step AWS deployment guide covering prerequisites, Terraform provisioning, Docker image push to ECR, database migration, ECS deployment, frontend config update, and smoke testing.",
+  "updatedAt": "2026-04-12T10:22:56.699803400Z"
+}
