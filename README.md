@@ -79,7 +79,7 @@ The Customer Portal is a dark-themed, responsive web application serving residen
 
 ### 2.1 Login Screen
 
-![AquaSense Customer Portal – Login screen](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\portal_login_page_1775989027763.png)
+![AquaSense Customer Portal – Login screen](images/portal_login_page_1775989027763.png)
 *The branded login modal with glassmorphism styling. Customers sign in with email/password via `user-service`. A **Demo Mode** button lets anyone explore with simulated data — no credentials needed.*
 
 **Features visible:**
@@ -92,7 +92,7 @@ The Customer Portal is a dark-themed, responsive web application serving residen
 
 ### 2.2 Main Dashboard
 
-![AquaSense Dashboard with KPI cards, water consumption chart, and usage breakdown doughnut](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\portal_dashboard_1775989036090.png)
+![AquaSense Dashboard with KPI cards, water consumption chart, and usage breakdown doughnut](images/portal_dashboard_1775989036090.png)
 *The central command centre. KPI cards animate in on load; the 7-day chart and live sensor feed update in real-time.*
 
 **What you see:**
@@ -114,7 +114,7 @@ The Customer Portal is a dark-themed, responsive web application serving residen
 
 ### 2.3 Water Usage Analysis
 
-![Water Usage Analysis – daily consumption chart and pressure trend](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\portal_water_usage_1775989052664.png)
+![Water Usage Analysis – daily consumption chart and pressure trend](images/portal_water_usage_1775989052664.png)
 *30-day daily consumption trend (cyan area chart) alongside the 24-hour pressure curve (purple). Six KPI stat tiles at the bottom.*
 
 **Stat tiles:**
@@ -134,7 +134,7 @@ The Customer Portal is a dark-themed, responsive web application serving residen
 
 ### 2.4 Energy Monitor
 
-![Energy Monitor – hourly kWh consumption chart](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\energy_monitor_page_1775988760255.png)
+![Energy Monitor – hourly kWh consumption chart](images/energy_monitor_page_1775988760255.png)
 *Hourly energy consumption waveform (gold/yellow) for the full 24-hour window. Companion doughnut shows the energy source mix.*
 
 **Key stats (stat tiles below charts):**
@@ -154,7 +154,7 @@ The Customer Portal is a dark-themed, responsive web application serving residen
 
 ### 2.5 Alerts & Notifications
 
-![Alerts & Notifications – full list with severity badges and AWS SNS metadata](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\alerts_page_1775988780150.png)
+![Alerts & Notifications – full list with severity badges and AWS SNS metadata](images/alerts_page_1775988780150.png)
 *All active alerts fetched from `alert-service`. Color-coded by severity with filter pills. Each alert includes timestamp and AWS SNS delivery metadata.*
 
 **Alert feed (demo):**
@@ -174,7 +174,7 @@ The Customer Portal is a dark-themed, responsive web application serving residen
 
 ### 2.6 Reports & Analytics
 
-![Reports & Analytics – downloadable PDF/CSV/XLSX cards](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\reports_page_view_1775988792920.png)
+![Reports & Analytics – downloadable PDF/CSV/XLSX cards](images/reports_page_view_1775988792920.png)
 *Six report cards in a responsive grid. Each shows generation date, format, and file size.*
 
 **Available reports:**
@@ -192,7 +192,7 @@ The Customer Portal is a dark-themed, responsive web application serving residen
 
 ### 2.7 My Smart Meters
 
-![My Smart Meters – 6 IoT meter cards with real-time status, flow rate, and pressure](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\meters_page_final_1775989070676.png)
+![My Smart Meters – 6 IoT meter cards with real-time status, flow rate, and pressure](images/meters_page_final_1775989070676.png)
 *All connected smart meters. Status indicators (ONLINE / WARNING / OFFLINE), live readings, and progress bars. Data sourced from `usage-service /api/usage/meters`.*
 
 **Connected meters:**
@@ -217,7 +217,7 @@ The Backend Dashboard is an ops/engineering view of the entire AWS infrastructur
 
 ### 3.1 Architecture Overview
 
-![AquaSense AWS Microservices Architecture diagram showing VPC layers, ECS services, Lambda, and data stores](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\overview_page_1775988858782.png)
+![AquaSense AWS Microservices Architecture diagram showing VPC layers, ECS services, Lambda, and data stores](images/overview_page_1775988858782.png)
 *Interactive architecture diagram spanning three VPC layers. AWS service pills are colour-coded by function.*
 
 **Layer breakdown:**
@@ -234,7 +234,7 @@ The Backend Dashboard is an ops/engineering view of the entire AWS infrastructur
 
 ### 3.2 IoT Core – Smart Meter Data Platform
 
-![AWS IoT Core – Thing Registry, MQTT topics, IoT Policy, and Rules Engine](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\iot_core_page_1775988877490.png)
+![AWS IoT Core – Thing Registry, MQTT topics, IoT Policy, and Rules Engine](images/iot_core_page_1775988877490.png)
 *IoT Core Thing Registry showing all 6 registered meters with MQTT connection state. The `SmartMeterPolicy` grants `iot:Connect`, `iot:Publish`, `iot:Subscribe`, and `iot:Receive`.*
 
 **MQTT Topics:**
@@ -251,7 +251,7 @@ The Backend Dashboard is an ops/engineering view of the entire AWS infrastructur
 
 ### 3.3 Lambda Functions
 
-![Lambda Functions – 4 cards showing iot-processor, anomaly-detector, bill-calculator, alert-dispatcher](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\lambda_page_1775988913857.png)
+![Lambda Functions – 4 cards showing iot-processor, anomaly-detector, bill-calculator, alert-dispatcher](images/lambda_page_1775988913857.png)
 *Eight Lambda functions (4 shown above the fold). Invocations, avg duration, and error rates shown per function.*
 
 **Key functions:**
@@ -269,7 +269,7 @@ The Backend Dashboard is an ops/engineering view of the entire AWS infrastructur
 
 ### 3.4 Storage & Databases
 
-![Storage & Databases – Aurora PostgreSQL, DynamoDB, S3 Data Lake cards](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\storage_db_page_1775988980803.png)
+![Storage & Databases – Aurora PostgreSQL, DynamoDB, S3 Data Lake cards](images/storage_db_page_1775988980803.png)
 *Three storage tiers with full spec cards. All encrypted and multi-AZ replicated.*
 
 **Infrastructure:**
@@ -284,7 +284,7 @@ The Backend Dashboard is an ops/engineering view of the entire AWS infrastructur
 
 ### 3.5 CloudWatch Metrics & Logs
 
-![CloudWatch – ALB Request Rate, Aurora DB Connections, DynamoDB Read Capacity, S3 Request Rate charts](C:\Users\HP\.gemini\antigravity\brain\cf511b5e-5d36-4537-a640-6e62ac389250\cloudwatch_page_1775988983101.png)
+![CloudWatch – ALB Request Rate, Aurora DB Connections, DynamoDB Read Capacity, S3 Request Rate charts](images/cloudwatch_page_1775988983101.png)
 *Four live metric charts with a scrolling CloudWatch log stream (`/aws/lambda/iot-processor`) at the bottom.*
 
 **Metrics tracked:**
