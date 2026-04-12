@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AquaSense – Customer Web Portal</title>
+  <meta name="description" content="AquaSense Smart Utilities – Real-time water and energy usage dashboard, alerts, and reporting for smart meter customers." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="portal.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+
+  <!-- LOGIN OVERLAY -->
+  <div class="login-overlay" id="login-overlay">
+    <div class="login-modal">
+      <div class="login-brand">
+        <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+          <path d="M14 2C14 2 5 10 5 16.5C5 21.2 9.03 25 14 25C18.97 25 23 21.2 23 16.5C23 10 14 2 14 2Z" fill="url(#wg2)"/>
+          <defs><linearGradient id="wg2" x1="5" y1="2" x2="23" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+        </svg>
+        <div>
+          <div class="login-brand-name">AquaSense</div>
+          <div class="login-brand-sub">Smart Utilities Portal</div>
+        </div>
+      </div>
+      <h2 class="login-title">Welcome back</h2>
+      <p class="login-sub">Sign in to monitor your water &amp; energy</p>
+      <div class="login-error" id="login-error"></div>
+      <form id="login-form">
+        <div class="login-field">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="rajesh@aquasense.in" required autocomplete="email" />
+        </div>
+        <div class="login-field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" />
+        </div>
+        <button type="submit" id="btn-login" class="btn-login">Sign In</button>
+      </form>
+      <div class="login-divider"><span>or</span></div>
+      <button id="btn-demo" class="btn-demo">🎭 Continue in Demo Mode</button>
+      <div class="login-hint">Demo: rajesh@aquasense.in / password123</div>
+    </div>
+  </div>
+
+  <!-- DEMO MODE NOTICE -->
+  <div id="demo-notice" class="demo-notice" style="display:none">
+    <span>🎭 Demo Mode — simulated data. <a href="#" onclick="showLoginModal();return false;">Sign in for live data</a></span>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M14 2C14 2 5 10 5 16.5C5 21.2 9.03 25 14 25C18.97 25 23 21.2 23 16.5C23 10 14 2 14 2Z" fill="url(#waterGrad)"/>
+          <path d="M14 8C14 8 9 13 9 16.5C9 19 11.24 21 14 21C16.76 21 19 19 19 16.5C19 13 14 8 14 8Z" fill="rgba(255,255,255,0.3)"/>
+          <defs>
+            <linearGradient id="waterGrad" x1="5" y1="2" x2="23" y2="25" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38bdf8"/>
+              <stop offset="1" stop-color="#0ea5e9"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <span class="logo-name">AquaSense</span>
+        <span class="logo-sub">Smart Utilities</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-water" onclick="showSection('water')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C12 2 4 9 4 14.5C4 18.64 7.58 22 12 22C16.42 22 20 18.64 20 14.5C20 9 12 2 12 2Z"/></svg>
+        <span>Water Usage</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-energy" onclick="showSection('energy')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        <span>Energy Monitor</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-alerts" onclick="showSection('alerts')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span>Alerts</span>
+        <span class="badge" id="alert-badge">3</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-reports" onclick="showSection('reports')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Reports</span>
+      </a>
+      <a href="#" class="nav-item" id="nav-meters" onclick="showSection('meters')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>My Meters</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">RK</div>
+        <div class="user-info">
+          <span class="user-name">Rajesh Kumar</span>
+          <span class="user-role">Residential</span>
+        </div>
+        <div class="online-dot"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="breadcrumb">
+          <span id="page-title">Dashboard</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="aws-status-pill">
+          <span class="pulse-dot"></span>
+          <span>AWS Connected</span>
+        </div>
+        <div class="date-display" id="live-date"></div>
+        <button class="icon-btn" title="Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="notif-dot"></span>
+        </button>
+        <button class="icon-btn" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- SECTIONS -->
+    <div class="content">
+
+      <!-- DASHBOARD SECTION -->
+      <section id="section-dashboard" class="section active">
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+          <div class="kpi-card water-card">
+            <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C12 2 4 9 4 14.5C4 18.64 7.58 22 12 22C16.42 22 20 18.64 20 14.5C20 9 12 2 12 2Z"/></svg></div>
+            <div class="kpi-data">
+              <span class="kpi-label">Water Today</span>
+              <span class="kpi-value" id="kpi-water">284 <small>L</small></span>
+              <span class="kpi-change positive">↓ 12% vs avg</span>
+            </div>
+            <div class="kpi-sparkline"><canvas id="spark-water"></canvas></div>
+          </div>
+          <div class="kpi-card energy-card">
+            <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+            <div class="kpi-data">
+              <span class="kpi-label">Energy Today</span>
+              <span class="kpi-value" id="kpi-energy">18.4 <small>kWh</small></span>
+              <span class="kpi-change negative">↑ 5% vs avg</span>
+            </div>
+            <div class="kpi-sparkline"><canvas id="spark-energy"></canvas></div>
+          </div>
+          <div class="kpi-card pressure-card">
+            <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            <div class="kpi-data">
+              <span class="kpi-label">Pressure</span>
+              <span class="kpi-value" id="kpi-pressure">2.4 <small>bar</small></span>
+              <span class="kpi-change neutral">Normal range</span>
+            </div>
+            <div class="kpi-sparkline"><canvas id="spark-pressure"></canvas></div>
+          </div>
+          <div class="kpi-card cost-card">
+            <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div class="kpi-data">
+              <span class="kpi-label">Est. Bill (Month)</span>
+              <span class="kpi-value" id="kpi-bill">₹ 1,842</span>
+              <span class="kpi-change positive">↓ ₹220 vs last month</span>
+            </div>
+            <div class="kpi-sparkline"><canvas id="spark-bill"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="charts-row">
+          <div class="chart-card wide">
+            <div class="chart-header">
+              <h3>7-Day Water Consumption</h3>
+              <div class="chart-controls">
+                <button class="chip active" onclick="setWaterRange(7,this)">7D</button>
+                <button class="chip" onclick="setWaterRange(30,this)">30D</button>
+                <button class="chip" onclick="setWaterRange(90,this)">90D</button>
+              </div>
+            </div>
+            <canvas id="chart-water-usage" height="100"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><h3>Usage Breakdown</h3></div>
+            <canvas id="chart-breakdown" height="180"></canvas>
+          </div>
+        </div>
+
+        <!-- Live Feed + Alerts -->
+        <div class="bottom-row">
+          <div class="live-feed-card">
+            <div class="card-header">
+              <h3>Live Sensor Feed</h3>
+              <span class="live-chip"><span class="pulse-dot small"></span>LIVE</span>
+            </div>
+            <div class="feed-list" id="live-feed"></div>
+          </div>
+          <div class="recent-alerts-card">
+            <div class="card-header">
+              <h3>Recent Alerts</h3>
+              <a href="#" onclick="showSection('alerts')" class="see-all">See all</a>
+            </div>
+            <div class="alert-list" id="dashboard-alerts"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WATER SECTION -->
+      <section id="section-water" class="section">
+        <div class="section-header"><h2>Water Usage Analysis</h2><p>Detailed breakdown of consumption, leakage, and pressure</p></div>
+        <div class="charts-row">
+          <div class="chart-card wide">
+            <div class="chart-header"><h3>Daily Consumption (Litres)</h3></div>
+            <canvas id="chart-water-detail" height="110"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><h3>Pressure Trend (bar)</h3></div>
+            <canvas id="chart-pressure" height="200"></canvas>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-tile"><span class="stat-label">Monthly Total</span><span class="stat-val blue">7,420 L</span></div>
+          <div class="stat-tile"><span class="stat-label">Daily Average</span><span class="stat-val blue">247 L</span></div>
+          <div class="stat-tile"><span class="stat-label">Peak Hour</span><span class="stat-val blue">7:00 AM</span></div>
+          <div class="stat-tile"><span class="stat-label">Leakage Events</span><span class="stat-val orange">2</span></div>
+          <div class="stat-tile"><span class="stat-label">Avg Pressure</span><span class="stat-val green">2.3 bar</span></div>
+          <div class="stat-tile"><span class="stat-label">Savings vs Target</span><span class="stat-val green">+8%</span></div>
+        </div>
+      </section>
+
+      <!-- ENERGY SECTION -->
+      <section id="section-energy" class="section">
+        <div class="section-header"><h2>Energy Monitor</h2><p>Real-time and historical energy consumption data</p></div>
+        <div class="charts-row">
+          <div class="chart-card wide">
+            <div class="chart-header"><h3>Hourly Energy Consumption (kWh)</h3></div>
+            <canvas id="chart-energy-hourly" height="110"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-header"><h3>Energy Source Mix</h3></div>
+            <canvas id="chart-energy-mix" height="200"></canvas>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-tile"><span class="stat-label">Month kWh</span><span class="stat-val yellow">412 kWh</span></div>
+          <div class="stat-tile"><span class="stat-label">Peak Demand</span><span class="stat-val yellow">3.8 kW</span></div>
+          <div class="stat-tile"><span class="stat-label">Off-peak Saving</span><span class="stat-val green">₹340</span></div>
+          <div class="stat-tile"><span class="stat-label">CO₂ Offset</span><span class="stat-val green">12 kg</span></div>
+          <div class="stat-tile"><span class="stat-label">Anomalies</span><span class="stat-val orange">1</span></div>
+          <div class="stat-tile"><span class="stat-label">Efficiency Score</span><span class="stat-val blue">82/100</span></div>
+        </div>
+      </section>
+
+      <!-- ALERTS SECTION -->
+      <section id="section-alerts" class="section">
+        <div class="section-header"><h2>Alerts &amp; Notifications</h2><p>Smart alerts powered by AWS SNS and Lambda anomaly detection</p></div>
+        <div class="alert-controls">
+          <button class="filter-btn active" onclick="filterAlerts('all',this)">All</button>
+          <button class="filter-btn" onclick="filterAlerts('critical',this)">Critical</button>
+          <button class="filter-btn" onclick="filterAlerts('warning',this)">Warning</button>
+          <button class="filter-btn" onclick="filterAlerts('info',this)">Info</button>
+        </div>
+        <div class="alerts-full-list" id="alerts-full"></div>
+      </section>
+
+      <!-- REPORTS SECTION -->
+      <section id="section-reports" class="section">
+        <div class="section-header"><h2>Reports &amp; Analytics</h2><p>Download or view monthly statements and usage analytics</p></div>
+        <div class="reports-grid" id="reports-grid"></div>
+      </section>
+
+      <!-- METERS SECTION -->
+      <section id="section-meters" class="section">
+        <div class="section-header"><h2>My Smart Meters</h2><p>All connected meters and their real-time status</p></div>
+        <div class="meters-grid" id="meters-grid"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <script src="portal.js"></script>
+</body>
+</html>

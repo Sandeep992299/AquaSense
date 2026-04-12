@@ -1,0 +1,32 @@
+# ── Secrets & credentials ─────────────────────────────────────────────
+services/.env
+infra/terraform/terraform.tfvars
+infra/terraform/*.tfstate
+infra/terraform/*.tfstate.backup
+infra/terraform/.terraform/
+infra/terraform/.terraform.lock.hcl
+
+# ── Node ──────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+package-lock.json
+yarn.lock
+
+# ── Build / dist ──────────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+
+# ── OS ────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDE ───────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Local docs / scratch ──────────────────────────────────────────────
+AquaSense_System_Showcase.md

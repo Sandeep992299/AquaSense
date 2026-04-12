@@ -1,0 +1,9 @@
+## Shared by all services – build context is services/ root
+## Prevents host node_modules from polluting Docker build cache
+
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+*.md

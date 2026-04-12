@@ -1,0 +1,30 @@
+# =====================================================================
+# AquaSense – terraform.tfvars.example
+# Copy to terraform.tfvars and fill in real values before running.
+# terraform.tfvars must NEVER be committed to git.
+# =====================================================================
+
+# AWS region (default ap-south-1 is fine for India)
+aws_region   = "ap-south-1"
+environment  = "production"
+project_name = "aquasense"
+
+# ── Networking ────────────────────────────────────────────────────────
+vpc_cidr             = "10.0.0.0/16"
+azs                  = ["ap-south-1a", "ap-south-1b"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
+private_subnet_cidrs = ["10.0.10.0/24", "10.0.11.0/24"]
+db_subnet_cidrs      = ["10.0.20.0/24", "10.0.21.0/24"]
+
+# ── Database ──────────────────────────────────────────────────────────
+# Minimum 8 chars, must include upper, lower, digit, special
+db_password       = "REPLACE_ME_AquaSecure@2026!"
+db_instance_class = "db.t3.medium"   # or db.r6g.large for prod
+
+# ── Secrets ───────────────────────────────────────────────────────────
+jwt_secret = "REPLACE_ME_jwt-signing-secret-min-32-chars"
+
+# ── ECS ───────────────────────────────────────────────────────────────
+service_desired_count = 2       # 2 tasks per service = HA across 2 AZs
+task_cpu              = 512     # 0.5 vCPU per task
+task_memory           = 1024    # 1 GB per task

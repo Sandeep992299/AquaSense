@@ -1,0 +1,164 @@
+# AquaSense – docker-compose.yml
+# Runs all 4 microservices + PostgreSQL locally.
+# Same connection strings work with Aurora on AWS (change DB_HOST + DB_SSL=true).
+#
+# Usage:
+#   docker-compose up --build          # start everything
+#   docker-compose up postgres         # start only DB first
+#   docker-compose logs -f             # tail all logs
+#   docker-compose down -v             # stop + remove volumes
+
+version: '3.9'
+
+networks:
+  aqua-net:
+    driver: bridge
+
+volumes:
+  postgres-data:
+
+services:
+
+  # ── PostgreSQL (local dev – mirrors Amazon Aurora PostgreSQL) ─
+  postgres:
+    image: postgres:15-alpine
+    container_name: aqua-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB:       aquasense_db
+      POSTGRES_USER:     aqua_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+    networks:
+      - aqua-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aqua_admin -d aquasense_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── user-service (port 8081) ──────────────────────────────
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: aqua-user-service
+    ports:
+      - "8081:8081"
+    environment:
+      PORT:        8081
+      DB_HOST:     postgres
+      DB_PORT:     5432
+      DB_NAME:     aquasense_db
+      DB_USER:     aqua_admin
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_SSL:      "false"
+      JWT_SECRET:  ${JWT_SECRET:-local-dev-jwt-secret-change-in-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aqua-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── billing-service (port 8082) ───────────────────────────
+  billing-service:
+    build:
+      context: .
+      dockerfile: billing-service/Dockerfile
+    container_name: aqua-billing-service
+    ports:
+      - "8082:8082"
+    environment:
+      PORT:              8082
+      DB_HOST:           postgres
+      DB_PORT:           5432
+      DB_NAME:           aquasense_db
+      DB_USER:           aqua_admin
+      DB_PASSWORD:       ${DB_PASSWORD:-changeme}
+      DB_SSL:            "false"
+      USAGE_SERVICE_URL: http://usage-service:8083
+    depends_on:
+      postgres:
+        condition: service_healthy
+      usage-service:
+        condition: service_healthy
+    networks:
+      - aqua-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── usage-service (port 8083) ─────────────────────────────
+  usage-service:
+    build:
+      context: .
+      dockerfile: usage-service/Dockerfile
+    container_name: aqua-usage-service
+    ports:
+      - "8083:8083"
+    environment:
+      PORT:        8083
+      DB_HOST:     postgres
+      DB_PORT:     5432
+      DB_NAME:     aquasense_db
+      DB_USER:     aqua_admin
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      DB_SSL:      "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aqua-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── alert-service (port 8084) ─────────────────────────────
+  alert-service:
+    build:
+      context: .
+      dockerfile: alert-service/Dockerfile
+    container_name: aqua-alert-service
+    ports:
+      - "8084:8084"
+    environment:
+      PORT:              8084
+      DB_HOST:           postgres
+      DB_PORT:           5432
+      DB_NAME:           aquasense_db
+      DB_USER:           aqua_admin
+      DB_PASSWORD:       ${DB_PASSWORD:-changeme}
+      DB_SSL:            "false"
+      USAGE_SERVICE_URL: http://usage-service:8083
+      SNS_TOPIC_ARN:     ${SNS_TOPIC_ARN:-arn:aws:sns:ap-south-1:123456789012:asu-alerts}
+      SQS_ALERT_QUEUE:   ${SQS_ALERT_QUEUE:-alert-processing-queue}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      usage-service:
+        condition: service_healthy
+    networks:
+      - aqua-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8084/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
