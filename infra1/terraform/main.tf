@@ -49,10 +49,9 @@ data "aws_caller_identity" "current" {}
 data "aws_region"          "current" {}
 
 locals {
-  account_id      = data.aws_caller_identity.current.account_id
-  region          = data.aws_region.current.name
-  resource_prefix = "tf-${replace(var.project_name, " ", "-")}"
-  name_prefix     = "${local.resource_prefix}-${var.environment}"
+  account_id = data.aws_caller_identity.current.account_id
+  region     = data.aws_region.current.name
+  name_prefix = "${var.project_name}-${var.environment}"
 }
 
 # ── Networking ────────────────────────────────────────────────────────
@@ -102,7 +101,7 @@ module "secrets" {
   jwt_secret   = var.jwt_secret
 }
 
-# ── PostgreSQL Database ─────────────────────────────────────────────
+# ── Aurora PostgreSQL ─────────────────────────────────────────────────
 module "rds" {
   source = "./modules/rds"
 
@@ -111,7 +110,6 @@ module "rds" {
   rds_sg_id           = module.security_groups.rds_sg_id
   db_password         = var.db_password
   db_instance_class   = var.db_instance_class
-  db_name             = "aquasense_db"
   environment         = var.environment
 }
 

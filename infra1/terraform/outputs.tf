@@ -7,14 +7,14 @@ output "alb_dns_name" {
   value       = module.alb.alb_dns_name
 }
 
-output "db_endpoint" {
-  description = "PostgreSQL endpoint (DB_HOST for ECS tasks)"
+output "aurora_cluster_endpoint" {
+  description = "Aurora cluster writer endpoint (DB_HOST for ECS tasks)"
   value       = module.rds.cluster_endpoint
   sensitive   = false
 }
 
-output "db_reader_endpoint" {
-  description = "Read-only endpoint (unused for a single-instance DB)"
+output "aurora_reader_endpoint" {
+  description = "Aurora cluster reader endpoint (for read-only queries)"
   value       = module.rds.reader_endpoint
 }
 

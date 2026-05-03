@@ -27,7 +27,7 @@ locals {
         { name = "DB_NAME",           value = "aquasense_db" },
         { name = "DB_USER",           value = "aqua_admin" },
         { name = "DB_SSL",            value = "true" },
-        { name = "USAGE_SERVICE_URL", value = "http://usage-service.${var.name_prefix}.local:8083" },
+        { name = "USAGE_SERVICE_URL", value = "http://usage-service.aquasense.local:8083" },
         { name = "NODE_ENV",          value = var.environment },
       ]
       secrets = [
@@ -60,13 +60,12 @@ locals {
         { name = "DB_NAME",           value = "aquasense_db" },
         { name = "DB_USER",           value = "aqua_admin" },
         { name = "DB_SSL",            value = "true" },
-        { name = "USAGE_SERVICE_URL", value = "http://usage-service.${replace(var.name_prefix, "/", "-")}.local:8083" },
-        { name = "SNS_TOPIC_ARN",     value = var.sns_topic_arn },
-        { name = "SQS_QUEUE_URL",     value = var.sqs_queue_url },
+        { name = "USAGE_SERVICE_URL", value = "http://usage-service.aquasense.local:8083" },
         { name = "NODE_ENV",          value = var.environment },
       ]
       secrets = [
-        { name = "DB_PASSWORD", valueFrom = var.db_password_secret_arn },
+        { name = "DB_PASSWORD",   valueFrom = var.db_password_secret_arn },
+        { name = "SNS_TOPIC_ARN", valueFrom = "" },  # inject ARN directly as env below
       ]
     }
   }
@@ -95,7 +94,7 @@ resource "aws_ecs_cluster_capacity_providers" "main" {
 
 # ── AWS Cloud Map – private service discovery ─────────────────────────
 resource "aws_service_discovery_private_dns_namespace" "aquasense" {
-  name        = "${var.name_prefix}.local"
+  name        = "aquasense.local"
   description = "AquaSense microservices private DNS namespace"
   vpc         = var.vpc_id
 }

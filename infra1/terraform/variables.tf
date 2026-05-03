@@ -11,7 +11,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "Project name prefix for all resources"
   type        = string
-  default     = "aqua-sense"
+  default     = "aquasense"
 }
 
 variable "environment" {
@@ -53,15 +53,15 @@ variable "db_subnet_cidrs" {
 
 # ── Database ──────────────────────────────────────────────────────────
 variable "db_password" {
-  description = "PostgreSQL master password (supply via -var or TF_VAR_db_password env var; stored in Secrets Manager)"
+  description = "Aurora master password (supply via -var or TF_VAR_db_password env var; stored in Secrets Manager)"
   type        = string
   sensitive   = true
 }
 
 variable "db_instance_class" {
-  description = "RDS PostgreSQL instance class"
+  description = "Aurora DB instance class"
   type        = string
-  default     = "db.t3.micro"
+  default     = "db.t3.medium"
 }
 
 # ── Secrets ───────────────────────────────────────────────────────────

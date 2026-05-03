@@ -1,23 +1,16 @@
 locals {
   # Path-based routing rules: priority → path patterns → target service
   listener_rules = {
-    user-service    = { priority = 10,  paths = ["/api/auth/*", "/api/users/*"] }
-    usage-service   = { priority = 20,  paths = ["/api/usage/*"] }
-    billing-service = { priority = 30,  paths = ["/api/bills/*", "/api/payments/*", "/api/billing/*"] }
-    alert-service   = { priority = 40,  paths = ["/api/alerts/*"] }
+    user-service    = { priority = 10;  paths = ["/api/auth/*", "/api/users/*"] }
+    usage-service   = { priority = 20;  paths = ["/api/usage/*"] }
+    billing-service = { priority = 30;  paths = ["/api/bills/*", "/api/payments/*", "/api/billing/*"] }
+    alert-service   = { priority = 40;  paths = ["/api/alerts/*"] }
   }
   service_ports = {
     user-service    = 8081
     billing-service = 8082
     usage-service   = 8083
     alert-service   = 8084
-  }
-  target_group_prefix = "tf-asn-prod"
-  target_group_short = {
-    "user-service"    = "user"
-    "billing-service" = "bill"
-    "usage-service"   = "usage"
-    "alert-service"   = "alert"
   }
 }
 
@@ -61,7 +54,7 @@ resource "aws_lb_listener" "http" {
 # ── Target Groups (one per microservice) ──────────────────────────────
 resource "aws_lb_target_group" "services" {
   for_each    = local.service_ports
-  name        = "${local.target_group_prefix}-${local.target_group_short[each.key]}-tg"
+  name        = "${var.name_prefix}-${each.key}-tg"
   port        = each.value
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
