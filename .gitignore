@@ -1,5 +1,7 @@
 # ── Secrets & credentials ─────────────────────────────────────────────
 services/.env
+services/simulator/.env
+services/simulator/certs/
 infra/terraform/terraform.tfvars
 infra/terraform/*.tfstate
 infra/terraform/*.tfstate.backup

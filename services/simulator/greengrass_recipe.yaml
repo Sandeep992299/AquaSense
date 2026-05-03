@@ -1,0 +1,60 @@
+---
+RecipeFormatVersion: "2020-01-25"
+
+ComponentName: com.aquasense.WaterMeterSimulator
+ComponentVersion: "1.0.0"
+ComponentDescription: >
+  AquaSense IoT Water Meter Simulator – publishes water usage telemetry to
+  AWS IoT Core via Greengrass.
+ComponentPublisher: AquaSense
+
+ComponentConfiguration:
+  DefaultConfiguration:
+    MeterIds: "meter-001,meter-002,meter-003"
+    PublishIntervalSeconds: "5"
+    TelemetryTopicPrefix: "aquasense/telemetry"
+    AlertThresholdLiters: "20.0"
+
+ComponentDependencies:
+  aws.greengrass.tokenExchangeService:
+    VersionRequirement: ">=2.0.0"
+    DependencyType: HARD
+
+Manifests:
+  - Platform:
+      os: linux
+    Lifecycle:
+      Install:
+        Script: pip3 install -r {artifacts:decompressedPath}/simulator/requirements.txt
+      Run:
+        Script: >
+          python3 {artifacts:decompressedPath}/simulator/iot_meter_simulator.py
+          --endpoint {iot:thingName}
+          --cert     {iot:certificatePem}
+          --key      {iot:privateKey}
+          --ca       {artifacts:decompressedPath}/certs/AmazonRootCA1.pem
+          --meter-ids {configuration:/MeterIds}
+          --interval  {configuration:/PublishIntervalSeconds}
+          --greengrass
+    Artifacts:
+      - URI: s3://REPLACE_WITH_YOUR_BUCKET/aquasense/simulator/simulator.zip
+        Unarchive: ZIP
+
+  - Platform:
+      os: windows
+    Lifecycle:
+      Install:
+        Script: pip install -r {artifacts:decompressedPath}/simulator/requirements.txt
+      Run:
+        Script: >
+          python {artifacts:decompressedPath}/simulator/iot_meter_simulator.py
+          --endpoint {iot:thingName}
+          --cert     {iot:certificatePem}
+          --key      {iot:privateKey}
+          --ca       {artifacts:decompressedPath}/certs/AmazonRootCA1.pem
+          --meter-ids {configuration:/MeterIds}
+          --interval  {configuration:/PublishIntervalSeconds}
+          --greengrass
+    Artifacts:
+      - URI: s3://REPLACE_WITH_YOUR_BUCKET/aquasense/simulator/simulator.zip
+        Unarchive: ZIP

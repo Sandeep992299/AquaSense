@@ -1,0 +1,8 @@
+# AWS IoT Device SDK v2 for Python
+awsiotsdk>=1.21.0
+
+# AWS SDK (for optional Greengrass IPC / Secrets Manager / etc.)
+boto3>=1.34.0
+
+# Standard library extras (already included in Python 3.8+, listed for clarity)
+# uuid, json, threading, signal — built-in, no install needed
