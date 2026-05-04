@@ -6,8 +6,8 @@ Triggered by:
   • AWS SQS (via event-source mapping) → event source: sqs
   • AWS IoT Rule (direct invoke) → event source: iot
 
-Sends a nicely formatted Adaptive Card to Microsoft Teams via an
-Incoming Webhook URL stored in AWS Secrets Manager.
+Sends a clean alert payload to Microsoft Teams or Power Automate via
+an HTTP trigger URL stored in Lambda environment variables or Secrets Manager.
 
 Environment variables (set in Lambda console or Terraform):
   TEAMS_WEBHOOK_SECRET_NAME  – Secrets Manager secret name  (default: aquasense/teams-webhook)
@@ -34,7 +34,7 @@ logger.setLevel(logging.INFO)
 # ── Constants ──────────────────────────────────────────────────────────────
 PROJECT_NAME   = os.environ.get("PROJECT_NAME", "AquaSense")
 ENVIRONMENT    = os.environ.get("ENVIRONMENT", "prod")
-SECRET_NAME    = os.environ.get("TEAMS_WEBHOOK_SECRET_NAME", "aquasense/teams-webhook")
+SECRET_NAME    = os.environ.get("TEAMS_WEBHOOK_SECRET_NAME", "")
 DIRECT_WEBHOOK = os.environ.get("TEAMS_WEBHOOK_URL", "")
 
 # Alert type → emoji + colour (Teams theme colour hex)
@@ -58,10 +58,17 @@ SEVERITY_COLOR = {
     "info":     "#2196F3",
 }
 
+SEVERITY_UI = {
+    "critical": "🚨 CRITICAL",
+    "warning":  "⚠️ WARNING",
+    "info":     "ℹ️ INFO",
+    "default":  "🔔 NOTICE",
+}
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Webhook URL retrieval
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════
 def _get_webhook_url() -> str:
     """Return the Teams webhook URL from env var or Secrets Manager."""
     if DIRECT_WEBHOOK:
@@ -132,7 +139,7 @@ def extract_alerts(event: dict) -> list[dict]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# Teams Adaptive Card builder
+# Teams payload builder for Power Automate / Adaptive Card mapping
 # ══════════════════════════════════════════════════════════════════════════════
 def _now_ist() -> str:
     """Return current UTC time formatted nicely."""
@@ -155,106 +162,53 @@ def _meta(alert_type: str, severity: str = "") -> dict:
     return ALERT_META["DEFAULT"]
 
 
-def build_teams_card(alert: dict) -> dict:
-    """
-    Build a Microsoft Teams Adaptive Card (via Legacy Connector Card format)
-    for one alert payload.
-
-    Expected alert dict keys (all optional – graceful fallback):
-      alert_type, severity, title, description / msg,
-      meter_id, zone, user_id, value, unit, pressure,
-      threshold, timestamp, reading_id
-    """
-    alert_type  = alert.get("alert_type", alert.get("kind", "DEFAULT"))
-    severity    = alert.get("severity", "warning")
+def build_teams_payload(alert: dict) -> dict:
+    """Build a clean JSON payload for Power Automate to render as an Adaptive Card."""
+    alert_type  = alert.get("alert_type") or alert.get("kind") or "DEFAULT"
+    severity    = (alert.get("severity") or "warning").lower()
     meta        = _meta(alert_type, severity)
 
-    title       = alert.get("title", meta["title"])
-    description = alert.get("description", alert.get("msg", alert.get("message", "See details below.")))
-    meter_id    = alert.get("meter_id",  "–")
-    zone        = alert.get("zone",      "–")
-    user_id     = alert.get("user_id",   alert.get("userId", "–"))
-    value       = alert.get("value",     alert.get("water_usage_liters", "–"))
-    unit        = alert.get("unit",      "L")
-    pressure    = alert.get("pressure",  "–")
-    threshold   = alert.get("threshold", "–")
-    ts          = alert.get("timestamp", _now_ist())
-    reading_id  = alert.get("reading_id", "–")
-    env_label   = ENVIRONMENT.upper()
-    color       = SEVERITY_COLOR.get(severity.lower(), meta["color"])
+    title       = alert.get("title") or meta["title"]
+    description = alert.get("description") or alert.get("msg") or alert.get("message") or "No additional details provided."
+    meter_id    = alert.get("meter_id") or alert.get("meterId") or "–"
+    zone        = alert.get("zone") or "–"
+    user_id     = alert.get("user_id") or alert.get("userId") or "–"
+    value       = alert.get("value") or alert.get("water_usage_liters") or "–"
+    unit        = alert.get("unit") or "L"
+    pressure    = alert.get("pressure") or "–"
+    threshold   = alert.get("threshold") or "–"
+    ts          = alert.get("timestamp") or _now_ist()
+    reading_id  = alert.get("reading_id") or "–"
+    severity_display = SEVERITY_UI.get(severity, severity.upper())
+    color       = SEVERITY_COLOR.get(severity, meta["color"])
 
-    # ── Legacy Connector Card (MessageCard) – widest Teams compatibility ──
-    card = {
-        "@type": "MessageCard",
-        "@context": "http://schema.org/extensions",
-        "themeColor": color.lstrip("#"),
+    return {
+        "title": title,
+        "description": description,
+        "alert_type": alert_type,
+        "severity": severity_display,
+        "severity_raw": severity,
+        "meter_id": meter_id,
+        "zone": zone,
+        "user_id": user_id,
+        "value": value,
+        "unit": unit,
+        "pressure": pressure,
+        "threshold": threshold,
+        "reading_id": reading_id,
+        "timestamp": ts,
+        "project_name": PROJECT_NAME,
+        "environment": ENVIRONMENT,
+        "theme_color": color,
         "summary": f"{meta['emoji']} {PROJECT_NAME} – {title}",
-        "sections": [
-            {
-                "activityTitle":    f"{meta['emoji']} **{title}**",
-                "activitySubtitle": f"_{PROJECT_NAME} · {env_label} · {ts}_",
-                "activityImage":    "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Water%20wave/3D/water_wave_3d.png",
-                "facts": _build_facts(
-                    alert_type, severity, meter_id, zone,
-                    user_id, value, unit, pressure, threshold, reading_id
-                ),
-                "markdown": True,
-            },
-            {
-                "text": f"> {description}",
-                "markdown": True,
-            },
-        ],
-        "potentialAction": [
-            {
-                "@type": "OpenUri",
-                "name":  "📊 Open AquaSense Dashboard",
-                "targets": [{"os": "default", "uri": "https://aquasense.example.com/alerts"}],
-            },
-            {
-                "@type": "OpenUri",
-                "name":  "📖 View Alert Docs",
-                "targets": [{"os": "default", "uri": "https://aquasense.example.com/docs/alerts"}],
-            },
-        ],
     }
-    return card
-
-
-def _build_facts(alert_type, severity, meter_id, zone,
-                 user_id, value, unit, pressure, threshold, reading_id) -> list[dict]:
-    """Build the fact rows shown in the Teams card."""
-    facts = [
-        {"name": "🔔 Alert Type",  "value": alert_type or "–"},
-        {"name": "🚦 Severity",    "value": severity.upper() if severity else "–"},
-        {"name": "📍 Meter ID",    "value": str(meter_id)},
-        {"name": "🗺️  Zone",       "value": str(zone)},
-    ]
-
-    if str(user_id) not in ("–", "None", "null", ""):
-        facts.append({"name": "👤 User ID",   "value": str(user_id)})
-
-    if str(value) not in ("–", "None", "null", ""):
-        facts.append({"name": "💧 Value",     "value": f"{value} {unit}"})
-
-    if str(pressure) not in ("–", "None", "null", ""):
-        facts.append({"name": "🔵 Pressure",  "value": f"{pressure} bar"})
-
-    if str(threshold) not in ("–", "None", "null", ""):
-        facts.append({"name": "📏 Threshold", "value": str(threshold)})
-
-    if str(reading_id) not in ("–", "None", "null", ""):
-        facts.append({"name": "🆔 Reading ID","value": str(reading_id)[:16] + "…"
-                      if len(str(reading_id)) > 16 else str(reading_id)})
-
-    return facts
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HTTP sender
 # ══════════════════════════════════════════════════════════════════════════════
 def send_to_teams(webhook_url: str, card: dict) -> None:
-    """POST the card JSON to the Teams webhook URL."""
+    """POST the alert payload JSON to the configured Teams/Power Automate endpoint."""
     payload = json.dumps(card).encode("utf-8")
     req = urllib.request.Request(
         webhook_url,
@@ -303,12 +257,12 @@ def lambda_handler(event: dict, context: Any) -> dict:
 
     for alert in alerts:
         try:
-            card = build_teams_card(alert)
-            logger.info("Sending card for alert_type=%s severity=%s meter=%s",
+            payload = build_teams_payload(alert)
+            logger.info("Sending payload for alert_type=%s severity=%s meter=%s",
                         alert.get("alert_type", "–"),
                         alert.get("severity", "–"),
                         alert.get("meter_id", "–"))
-            send_to_teams(webhook_url, card)
+            send_to_teams(webhook_url, payload)
             sent += 1
         except Exception as exc:
             logger.error("Failed to send alert to Teams: %s | alert=%s", exc, alert)
