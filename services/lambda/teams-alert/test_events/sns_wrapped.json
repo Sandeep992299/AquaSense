@@ -1,0 +1,19 @@
+{
+  "comment": "SNS-wrapped event (as delivered by AWS SNS subscription)",
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:ap-south-1:123456789012:asu-alerts:abc123",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "mock-message-id-001",
+        "TopicArn": "arn:aws:sns:ap-south-1:123456789012:asu-alerts",
+        "Subject": "AquaSense Alert",
+        "Message": "{\"alert_type\": \"LEAKAGE\", \"severity\": \"critical\", \"title\": \"Water Leakage Detected\", \"description\": \"Flow 2.1L detected at 03:00 AM – leakage suspected\", \"meter_id\": \"meter-001\", \"zone\": \"zone-A\", \"user_id\": \"usr-42\", \"value\": 2.1, \"unit\": \"L\", \"pressure\": 1.2, \"threshold\": 0.5, \"timestamp\": \"2026-05-04T03:00:00Z\"}",
+        "Timestamp": "2026-05-04T03:00:05.000Z",
+        "MessageAttributes": {}
+      }
+    }
+  ]
+}

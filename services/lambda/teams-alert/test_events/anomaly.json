@@ -1,0 +1,15 @@
+{
+  "comment": "ANOMALY – direct invocation test",
+  "alert_type": "ANOMALY",
+  "severity": "critical",
+  "title": "Consumption Anomaly Detected",
+  "description": "ML anomaly detector flagged meter-004 with 3σ deviation from 30-day baseline. Investigate immediately.",
+  "meter_id": "meter-004",
+  "zone": "zone-D",
+  "user_id": "usr-55",
+  "value": 189.7,
+  "unit": "L",
+  "threshold": 200.0,
+  "reading_id": "880e8400-e29b-41d4-a716-446655440003",
+  "timestamp": "2026-05-04T08:45:00Z"
+}

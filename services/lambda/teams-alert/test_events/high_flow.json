@@ -1,0 +1,15 @@
+{
+  "comment": "HIGH FLOW / HIGH USAGE – direct invocation test",
+  "alert_type": "HIGH_FLOW",
+  "severity": "warning",
+  "title": "High Water Usage Detected",
+  "description": "Meter meter-001 recorded 26.5 L in a single reading, exceeding the 25 L threshold.",
+  "meter_id": "meter-001",
+  "zone": "zone-A",
+  "user_id": "usr-42",
+  "value": 26.5,
+  "unit": "L",
+  "threshold": 25,
+  "reading_id": "550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2026-05-04T13:00:00Z"
+}

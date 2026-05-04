@@ -1,0 +1,16 @@
+{
+  "comment": "HIGH PRESSURE – direct invocation test",
+  "alert_type": "HIGH_PRESSURE",
+  "severity": "warning",
+  "title": "High Pressure Alert",
+  "description": "Meter meter-003 is registering a pressure of 4.2 bar, above the 3.5 bar safety threshold. Risk of pipe burst.",
+  "meter_id": "meter-003",
+  "zone": "zone-C",
+  "user_id": "usr-09",
+  "value": 12.0,
+  "unit": "L",
+  "pressure": 4.2,
+  "threshold": 3.5,
+  "reading_id": "770e8400-e29b-41d4-a716-446655440002",
+  "timestamp": "2026-05-04T10:30:00Z"
+}

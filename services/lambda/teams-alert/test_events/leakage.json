@@ -1,0 +1,15 @@
+{
+  "comment": "WATER LEAKAGE – direct invocation test",
+  "alert_type": "LEAKAGE",
+  "severity": "critical",
+  "title": "Water Leakage Suspected",
+  "description": "Meter meter-002 is reporting flow of 1.8 L between 01:00–04:00 AM, strongly suggesting a pipe leak.",
+  "meter_id": "meter-002",
+  "zone": "zone-B",
+  "user_id": "usr-17",
+  "value": 1.8,
+  "unit": "L",
+  "threshold": 0.5,
+  "reading_id": "660e8400-e29b-41d4-a716-446655440001",
+  "timestamp": "2026-05-04T02:15:00Z"
+}
