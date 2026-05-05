@@ -1,0 +1,1 @@
+python iot_meter_simulator.py --endpoint ax7u8iowtmh2-ats.iot.ap-south-1.amazonaws.com --cert certs/device.pem.crt --key certs/private.pem.key --ca certs/AmazonRootCA1.pem --meter-ids meter-001 --interval 5

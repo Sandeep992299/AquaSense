@@ -35,6 +35,8 @@ import sys
 import time
 import threading
 import uuid
+from dotenv import load_dotenv
+load_dotenv()
 from datetime import datetime, timezone
 from concurrent.futures import Future
 

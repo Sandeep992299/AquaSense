@@ -1,0 +1,15 @@
+{
+  "sql": "SELECT * FROM 'aquasense/telemetry/+'",
+  "description": "Route telemetry data from IoT devices to SQS for processing",
+  "actions": [
+    {
+      "sqs": {
+        "roleArn": "arn:aws:iam::595529181954:role/service-role/aquasense-alert-iot-core",
+        "queueUrl": "https://sqs.ap-south-1.amazonaws.com/595529181954/tf-aqua-sense-production-alert-queue",
+        "useBase64": true
+      }
+    }
+  ],
+  "ruleDisabled": false,
+  "awsIotSqlVersion": "2016-03-23"
+}
