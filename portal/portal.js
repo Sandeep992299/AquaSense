@@ -18,11 +18,21 @@ const rand    = (min, max) => Math.random() * (max - min) + min;
 const randInt = (min, max) => Math.floor(rand(min, max));
 
 // ===== COGNITO SETUP =====
-const poolData = {
-  UserPoolId: SERVICES.cognito.userPoolId,
-  ClientId:   SERVICES.cognito.clientId
-};
-const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+let userPool = null;
+try {
+  if (typeof AmazonCognitoIdentity === 'undefined') {
+    console.error('AWS Cognito SDK not loaded. Check index.html script tags.');
+  } else {
+    const poolData = {
+      UserPoolId: SERVICES.cognito.userPoolId,
+      ClientId:   SERVICES.cognito.clientId
+    };
+    userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+    console.log('Cognito User Pool initialized:', SERVICES.cognito.userPoolId);
+  }
+} catch (e) {
+  console.error('Failed to initialize Cognito:', e);
+}
 
 // ===== AUTH STATE =====
 let AUTH = {
@@ -700,6 +710,8 @@ async function loadAndRenderMeters() {
 
 // ===== BOOT =====
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('AquaSense Portal Booting...');
+  
   // Wire login form
   $('login-form')?.addEventListener('submit', async e => {
     e.preventDefault();
@@ -708,22 +720,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-demo')?.addEventListener('click', enterDemoMode);
   
   // Wire forgot password
-  $('btn-forgot-password')?.addEventListener('click', e => { e.preventDefault(); toggleForgotPw(true); });
+  $('btn-forgot-password')?.addEventListener('click', e => { 
+    console.log('Forgot password clicked');
+    e.preventDefault(); 
+    toggleForgotPw(true); 
+  });
   $('btn-send-code')?.addEventListener('click', handleForgotPwSend);
   $('btn-confirm-reset')?.addEventListener('click', handleForgotPwConfirm);
 
   // Wire Sign Up
-  $('link-show-signup')?.addEventListener('click', e => { e.preventDefault(); toggleSignUp(true); });
-  $('link-show-login')?.addEventListener('click', e => { e.preventDefault(); toggleSignUp(false); });
+  $('link-show-signup')?.addEventListener('click', e => { 
+    console.log('Sign up clicked');
+    e.preventDefault(); 
+    toggleSignUp(true); 
+  });
+  $('link-show-login')?.addEventListener('click', e => { 
+    e.preventDefault(); 
+    toggleSignUp(false); 
+  });
   $('signup-form')?.addEventListener('submit', handleSignUp);
   $('btn-verify-submit')?.addEventListener('click', handleVerifyCode);
 
   // Check for saved session
-  const loggedIn = await checkExistingAuth();
-  if (loggedIn) {
-    hideLoginModal();
-    initDashboard();
-    showSection('dashboard');
+  if (userPool) {
+    const loggedIn = await checkExistingAuth();
+    if (loggedIn) {
+      hideLoginModal();
+      initDashboard();
+      showSection('dashboard');
+    } else {
+      showLoginModal();
+    }
   } else {
     showLoginModal();
   }
