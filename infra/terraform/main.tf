@@ -162,3 +162,16 @@ module "ecs" {
 
   environment          = var.environment
 }
+
+# ── Cognito Authentication ────────────────────────────────────────────
+module "cognito" {
+  source = "./modules/cognito"
+
+  name_prefix   = local.name_prefix
+  environment   = var.environment
+  region        = local.region
+  domain_prefix = var.cognito_domain_prefix
+
+  customer_portal_callback_urls = var.customer_portal_callback_urls
+  admin_portal_callback_urls    = var.admin_portal_callback_urls
+}

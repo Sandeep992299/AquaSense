@@ -89,3 +89,22 @@ variable "task_memory" {
   type        = number
   default     = 1024
 }
+
+# ── Cognito ───────────────────────────────────────────────────────────
+variable "cognito_domain_prefix" {
+  description = "Unique Cognito hosted-UI domain prefix (e.g. aquasense-prod). Must be globally unique."
+  type        = string
+  default     = "aquasense-prod"
+}
+
+variable "customer_portal_callback_urls" {
+  description = "Allowed OAuth callback URLs for the customer portal"
+  type        = list(string)
+  default     = ["http://localhost:3000", "http://localhost:8080"]
+}
+
+variable "admin_portal_callback_urls" {
+  description = "Allowed OAuth callback URLs for the admin portal"
+  type        = list(string)
+  default     = ["http://localhost:3001", "http://localhost:9090"]
+}

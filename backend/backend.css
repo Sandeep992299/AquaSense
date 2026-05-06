@@ -308,3 +308,62 @@ html, body { min-height: 100vh; font-family: 'Inter', sans-serif; background: va
   .services-cards, .lambda-grid, .storage-grid { grid-template-columns: 1fr; }
   .msg-grid { grid-template-columns: 1fr; }
 }
+
+/* =============================================
+   ADMIN LOGIN OVERLAY
+   ============================================= */
+.login-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(8, 13, 24, 0.95);
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+.login-overlay.hidden { display: none; }
+
+.login-modal {
+  width: 100%; max-width: 400px;
+  background: var(--bg2); border: 1px solid var(--glass-b);
+  border-radius: 16px; padding: 40px;
+  box-shadow: 0 32px 100px rgba(0,0,0,0.8);
+  animation: modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes modalScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.login-header { text-align: center; margin-bottom: 30px; }
+.aws-logo-small { display: flex; justify-content: center; margin-bottom: 15px; }
+.login-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 5px; color: #fff; }
+.login-header p { font-size: 13px; color: var(--text-secondary); }
+
+.login-error-msg {
+  font-size: 12px; color: var(--accent-red);
+  background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 6px; padding: 10px; margin-bottom: 20px;
+  display: none;
+}
+.login-error-msg:not(:empty) { display: block; }
+
+.form-group { margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px; }
+.form-group label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+.form-group input {
+  background: var(--bg3); border: 1px solid var(--glass-b);
+  border-radius: 8px; padding: 12px 14px;
+  color: var(--text-primary); font-size: 14px; outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus { border-color: var(--aws-orange); }
+
+.login-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 8px;
+  background: var(--aws-orange); color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: opacity 0.2s; margin-top: 10px;
+}
+.login-btn:hover { opacity: 0.9; }
+.login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.signout-btn:hover { background: rgba(239, 68, 68, 0.2) !important; opacity: 1; }
+

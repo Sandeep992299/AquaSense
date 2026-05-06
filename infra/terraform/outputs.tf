@@ -52,3 +52,44 @@ output "private_subnet_ids" {
   description = "Private subnet IDs where ECS tasks run"
   value       = module.vpc.private_subnet_ids
 }
+
+# ── Cognito ───────────────────────────────────────────────────────────
+output "customer_user_pool_id" {
+  description = "Cognito User Pool ID – paste into portal/config.js as userPoolId"
+  value       = module.cognito.customer_user_pool_id
+}
+
+output "customer_cognito_client_id" {
+  description = "Cognito App Client ID – paste into portal/config.js as clientId"
+  value       = module.cognito.customer_client_id
+}
+
+output "admin_user_pool_id" {
+  description = "Cognito Admin Pool ID – paste into backend/cognito-auth.js as userPoolId"
+  value       = module.cognito.admin_user_pool_id
+}
+
+output "admin_cognito_client_id" {
+  description = "Cognito Admin Client ID – paste into backend/cognito-auth.js as clientId"
+  value       = module.cognito.admin_client_id
+}
+
+output "customer_jwks_uri" {
+  description = "JWKS URI for verifying customer portal ID tokens in backend services"
+  value       = module.cognito.customer_jwks_uri
+}
+
+output "admin_jwks_uri" {
+  description = "JWKS URI for verifying admin portal ID tokens in backend services"
+  value       = module.cognito.admin_jwks_uri
+}
+
+output "customer_pool_domain" {
+  description = "Cognito hosted UI domain for the customer pool (Hosted UI fallback)"
+  value       = module.cognito.customer_pool_domain
+}
+
+output "admin_pool_domain" {
+  description = "Cognito hosted UI domain for the admin pool (Hosted UI fallback)"
+  value       = module.cognito.admin_pool_domain
+}

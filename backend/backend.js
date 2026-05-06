@@ -791,6 +791,35 @@ function initIoT() {
 }
 tabInits.iot = initIoT;
 
+// ========= BOOT / AUTH GUARD =========
+document.addEventListener('DOMContentLoaded', async () => {
+  // Wire login form
+  $('admin-login-form')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const success = await handleAdminLogin($('admin-email').value.trim(), $('admin-password').value);
+    if (success) {
+      initDashboard();
+    }
+  });
+
+  const loggedIn = await checkAdminAuth();
+  if (loggedIn) {
+    initDashboard();
+  } else {
+    showAdminLogin();
+  }
+});
+
+function initDashboard() {
+  hideAdminLogin();
+  $('admin-signout-btn').style.display = 'block';
+  
+  // Start intervals/initialization
+  tickClock();
+  initOverview();
+  switchTab('overview', $('tab-overview'));
+}
+
 // ========= LIVE HEALTH POLLING =========
 const SVC_URLS = {
   'user-service':    'http://localhost:8081',
@@ -798,6 +827,19 @@ const SVC_URLS = {
   'usage-service':   'http://localhost:8083',
   'alert-service':   'http://localhost:8084',
 };
+
+async function pollHealth() {
+  if (!ADMIN_AUTH.token) return; // Guard
+  for (const [name, url] of Object.entries(SVC_URLS)) {
+    try {
+      const res = await fetch(url + '/api/auth/health');
+      console.log(`[health] ${name}: ${res.status}`);
+    } catch (e) {
+      console.warn(`[health] ${name} offline`);
+    }
+  }
+}
+setInterval(pollHealth, 10000);
 
 async function pollServiceHealth() {
   let allHealthy = true;
