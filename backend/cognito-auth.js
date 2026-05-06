@@ -4,7 +4,7 @@
 
 const ADMIN_CONFIG = {
   region: 'ap-south-1',
-  userPoolId: 'ap-south-1_XXXXXXXXX', // TO BE FILLED FROM TERRAFORM OUTPUT
+  userPoolId: 'ap-south-1_uxqvLCPAT', // TO BE FILLED FROM TERRAFORM OUTPUT
   clientId: 'XXXXXXXXXXXXXXXXXXXXXXXXXX' // TO BE FILLED FROM TERRAFORM OUTPUT
 };
 

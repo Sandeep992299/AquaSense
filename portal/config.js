@@ -21,8 +21,8 @@ window.AQUA_CONFIG = {
   // from: terraform output customer_user_pool_id && terraform output customer_cognito_client_id
   cognito: {
     region:     'ap-south-1',
-    userPoolId: 'ap-south-1_XXXXXXXXX',        // ← terraform output customer_user_pool_id
-    clientId:   'XXXXXXXXXXXXXXXXXXXXXXXXXX',   // ← terraform output customer_cognito_client_id
+    userPoolId: 'ap-south-1_GBei4V5ZL',        // ← terraform output customer_user_pool_id
+    clientId:   '53a4d878tmrcj9h9d7ec2qc2t5',   // ← terraform output customer_cognito_client_id
   },
 };
 
