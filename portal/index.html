@@ -51,6 +51,19 @@
         Don't have an account? <a href="#" id="link-show-signup">Sign Up</a>
       </div>
 
+      <!-- NEW PASSWORD PANEL (admin-created users) -->
+      <div id="new-pw-panel" style="display:none">
+        <div class="login-field">
+          <label>New Password</label>
+          <input type="password" id="new-pw-input" placeholder="Min 8 chars, uppercase, number" />
+        </div>
+        <div class="login-field">
+          <label>Confirm Password</label>
+          <input type="password" id="new-pw-confirm" placeholder="Repeat new password" />
+        </div>
+        <button id="btn-set-password" class="btn-login">Set Password &amp; Sign In</button>
+      </div>
+
       <!-- SIGN UP FORM (hidden by default) -->
       <div id="signup-panel" style="display:none;margin-top:12px">
         <form id="signup-form">

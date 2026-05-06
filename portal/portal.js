@@ -65,7 +65,9 @@ async function apiSafe(svc, path, fallback = null, fetchOpts = {}) {
   try { return await apiFetch(svc, path, fetchOpts); }
   catch (err) {
     console.warn(`[portal] ${svc}${path} unavailable — ${err.message}`);
-    if (!AUTH.demo) showDemoNotice();
+    // Only show demo notice if no real auth token (not a Cognito user)
+    if (!AUTH.token && !AUTH.demo) showDemoNotice();
+    if (AUTH.demo) showDemoNotice();
     return fallback;
   }
 }
@@ -76,7 +78,12 @@ function showDemoNotice() {
   if (_demoNoticeShown) return;
   _demoNoticeShown = true;
   const el = $('demo-notice');
-  if (el) el.style.display = 'flex';
+  if (el) {
+    el.innerHTML = AUTH.demo
+      ? '🎭 Demo Mode — simulated data only. <a href="#" onclick="showLoginModal();return false;">Sign in for live data</a>'
+      : '⚠️ Backend services offline — showing cached/simulated data. <a href="https://docs.aws.amazon.com/" target="_blank">View AWS status</a>';
+    el.style.display = 'flex';
+  }
 }
 
 // ===== LOGIN UI HELPERS =====
@@ -98,7 +105,8 @@ function updateUserCard(user) {
   if (signoutBtn) signoutBtn.style.display = AUTH.demo ? 'none' : 'flex';
 }
 
-// ===== COGNITO AUTH LOGIC =====
+// Store cognitoUser for newPasswordRequired flow
+let _pendingCognitoUser = null;
 
 async function handleLogin(email, password) {
   const btn = $('btn-login');
@@ -107,10 +115,13 @@ async function handleLogin(email, password) {
   btn.disabled    = true;
   err.textContent = '';
 
-  const authenticationData = { Username: email, Password: password };
-  const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
-  const userData = { Username: email, Pool: userPool };
-  const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+  if (!userPool) {
+    err.textContent = 'Cognito not configured. Check config.js and try Demo Mode.';
+    btn.textContent = 'Sign In'; btn.disabled = false; return;
+  }
+
+  const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails({ Username: email, Password: password });
+  const cognitoUser = new AmazonCognitoIdentity.CognitoUser({ Username: email, Pool: userPool });
 
   cognitoUser.authenticateUser(authenticationDetails, {
     onSuccess: async (result) => {
@@ -118,56 +129,87 @@ async function handleLogin(email, password) {
       AUTH.token = idToken;
       AUTH.demo  = false;
       localStorage.setItem('aqua_token', idToken);
-      
-      // Get user attributes
-      cognitoUser.getUserAttributes((err, attributes) => {
-        if (err) {
-          console.error(err);
-          // Fallback if attributes fail
+
+      cognitoUser.getUserAttributes((attrErr, attributes) => {
+        if (attrErr || !attributes) {
           AUTH.user = { name: email, role: 'residential' };
         } else {
           const userObj = {};
-          attributes.forEach(attr => userObj[attr.getName()] = attr.getValue());
-          AUTH.user = { 
-            name: userObj.name || email, 
-            role: userObj['custom:account_type'] || 'residential',
-            id: userObj.sub
-          };
+          attributes.forEach(a => userObj[a.getName()] = a.getValue());
+          AUTH.user = { name: userObj.name || email, role: userObj['custom:account_type'] || 'residential', id: userObj.sub };
           AUTH.userId = userObj.sub;
           localStorage.setItem('aqua_userId', AUTH.userId);
         }
-        
+        btn.textContent = 'Sign In'; btn.disabled = false;
         hideLoginModal();
         updateUserCard(AUTH.user);
-        loadDashboardData();
-        btn.textContent = 'Sign In';
-        btn.disabled = false;
+        initDashboard();          // Build DOM first
+        showSection('dashboard'); // Then navigate
+        loadDashboardData();      // Then fetch live data
       });
     },
     onFailure: (e) => {
-      console.error(e);
-      err.textContent = e.message || JSON.stringify(e);
-      btn.textContent = 'Sign In';
-      btn.disabled = false;
+      console.error('Cognito login error:', e);
+      err.textContent = e.message || 'Sign-in failed. Please check your credentials.';
+      btn.textContent = 'Sign In'; btn.disabled = false;
     },
-    newPasswordRequired: (userAttributes, requiredAttributes) => {
-      // User was created by admin and needs to set a password
-      err.textContent = 'New password required. Please use Hosted UI to reset.';
-      btn.textContent = 'Sign In';
-      btn.disabled = false;
+    newPasswordRequired: (userAttributes) => {
+      // Admin-created user: must set a permanent password on first login
+      _pendingCognitoUser = cognitoUser;
+      btn.textContent = 'Sign In'; btn.disabled = false;
+      // Show the new-password panel
+      $('login-form').style.display = 'none';
+      $('new-pw-panel').style.display = 'block';
+      if ($('login-title')) $('login-title').textContent = 'Set New Password';
+      if ($('login-sub')) $('login-sub').textContent = 'Your admin-assigned password has expired. Set a permanent one.';
     }
   });
 }
 
 function handleSignOut() {
-  const cognitoUser = userPool.getCurrentUser();
-  if (cognitoUser) {
-    cognitoUser.signOut();
-  }
+  const cognitoUser = userPool?.getCurrentUser();
+  if (cognitoUser) cognitoUser.signOut();
   AUTH = { token: null, userId: null, user: null, demo: false };
   localStorage.removeItem('aqua_token');
   localStorage.removeItem('aqua_userId');
   showLoginModal();
+}
+
+function handleSetNewPassword() {
+  const pw  = $('new-pw-input').value;
+  const pw2 = $('new-pw-confirm').value;
+  const err = $('login-error');
+  if (pw !== pw2) { err.textContent = 'Passwords do not match.'; return; }
+  if (!_pendingCognitoUser) { err.textContent = 'Session expired. Please sign in again.'; return; }
+
+  _pendingCognitoUser.completeNewPasswordChallenge(pw, {}, {
+    onSuccess: (result) => {
+      const idToken = result.getIdToken().getJwtToken();
+      AUTH.token = idToken; AUTH.demo = false;
+      localStorage.setItem('aqua_token', idToken);
+      _pendingCognitoUser.getUserAttributes((attrErr, attributes) => {
+        if (!attrErr && attributes) {
+          const userObj = {};
+          attributes.forEach(a => userObj[a.getName()] = a.getValue());
+          AUTH.user = { name: userObj.name || 'User', role: userObj['custom:account_type'] || 'residential', id: userObj.sub };
+          AUTH.userId = userObj.sub;
+          localStorage.setItem('aqua_userId', AUTH.userId);
+        } else {
+          AUTH.user = { name: 'User', role: 'residential' };
+        }
+        _pendingCognitoUser = null;
+        $('new-pw-panel').style.display = 'none';
+        hideLoginModal();
+        updateUserCard(AUTH.user);
+        initDashboard();
+        showSection('dashboard');
+        loadDashboardData();
+      });
+    },
+    onFailure: (e) => {
+      $('login-error').textContent = e.message || 'Failed to set password.';
+    }
+  });
 }
 
 function enterDemoMode() {
@@ -302,24 +344,28 @@ async function handleSignUp(e) {
 }
 
 async function handleVerifyCode() {
-  const email = $('signup-email').value.trim() || $('login-email').value.trim();
+  const emailVal = $('signup-email').value.trim() || $('login-email').value.trim();
   const code = $('verify-code').value.trim();
-  const err = $('login-error');
-  
-  const userData = { Username: email, Pool: userPool };
+  const errEl = $('login-error');
+
+  if (!userPool) { errEl.textContent = 'Cognito not configured.'; return; }
+
+  const userData = { Username: emailVal, Pool: userPool };
   const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
 
-  cognitoUser.confirmRegistration(code, true, (err, result) => {
-    if (err) {
-      err.textContent = err.message || JSON.stringify(err);
+  cognitoUser.confirmRegistration(code, true, (cbErr, result) => {
+    if (cbErr) {
+      errEl.textContent = cbErr.message || JSON.stringify(cbErr);
       return;
     }
-    alert('Verification successful! You can now sign in.');
+    alert('✅ Account verified! You can now sign in.');
     toggleSignUp(false);
     $('verify-panel').style.display = 'none';
   });
 }
 
+// ===== NAV =====
+function showSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   $('section-' + name)?.classList.add('active');
@@ -328,8 +374,11 @@ async function handleVerifyCode() {
     dashboard:'Dashboard', water:'Water Usage', energy:'Energy Monitor',
     alerts:'Alerts', reports:'Reports', meters:'My Meters'
   }[name] || name;
+  // Browser history support
+  history.pushState({ section: name }, '', '#' + name);
   initSectionCharts(name);
 }
+
 
 function toggleSidebar() { $('sidebar')?.classList.toggle('open'); }
 
@@ -729,17 +778,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-confirm-reset')?.addEventListener('click', handleForgotPwConfirm);
 
   // Wire Sign Up
-  $('link-show-signup')?.addEventListener('click', e => { 
+  $('link-show-signup')?.addEventListener('click', e => {
     console.log('Sign up clicked');
-    e.preventDefault(); 
-    toggleSignUp(true); 
+    e.preventDefault();
+    toggleSignUp(true);
   });
-  $('link-show-login')?.addEventListener('click', e => { 
-    e.preventDefault(); 
-    toggleSignUp(false); 
+  $('link-show-login')?.addEventListener('click', e => {
+    e.preventDefault();
+    toggleSignUp(false);
   });
   $('signup-form')?.addEventListener('submit', handleSignUp);
   $('btn-verify-submit')?.addEventListener('click', handleVerifyCode);
+  $('btn-set-password')?.addEventListener('click', handleSetNewPassword);
+
+
+  // Browser back button support
+  window.addEventListener('popstate', e => {
+    const section = e.state?.section || 'dashboard';
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    $('section-' + section)?.classList.add('active');
+    $('nav-' + section)?.classList.add('active');
+    if ($('page-title')) $('page-title').textContent = section.charAt(0).toUpperCase() + section.slice(1);
+    initSectionCharts(section);
+  });
 
   // Check for saved session
   if (userPool) {
