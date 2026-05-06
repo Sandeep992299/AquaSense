@@ -46,6 +46,46 @@
       <div class="login-forgot"><a href="#" id="btn-forgot-password">Forgot password?</a></div>
       <div class="login-divider"><span>or</span></div>
       <button id="btn-demo" class="btn-demo">🎭 Continue in Demo Mode</button>
+      
+      <div class="login-footer">
+        Don't have an account? <a href="#" id="link-show-signup">Sign Up</a>
+      </div>
+
+      <!-- SIGN UP FORM (hidden by default) -->
+      <div id="signup-panel" style="display:none;margin-top:12px">
+        <form id="signup-form">
+          <div class="login-field">
+            <label>Full Name</label>
+            <input type="text" id="signup-name" placeholder="Rajesh Kumar" required />
+          </div>
+          <div class="login-field">
+            <label>Email Address</label>
+            <input type="email" id="signup-email" placeholder="rajesh@aquasense.in" required />
+          </div>
+          <div class="login-field">
+            <label>Password</label>
+            <input type="password" id="signup-password" placeholder="Min 8 chars, A-Z, 0-9" required />
+          </div>
+          <div class="login-field">
+            <label>Meter ID (Optional)</label>
+            <input type="text" id="signup-meter" placeholder="SMT-W-XXXX" />
+          </div>
+          <button type="submit" id="btn-signup-submit" class="btn-login">Create Account</button>
+        </form>
+        <div class="login-footer" style="margin-top:12px">
+          Already have an account? <a href="#" id="link-show-login">Sign In</a>
+        </div>
+      </div>
+
+      <!-- VERIFICATION PANEL (hidden by default) -->
+      <div id="verify-panel" style="display:none;margin-top:12px">
+        <div class="login-field">
+          <label>Verification Code</label>
+          <p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">We sent a code to your email.</p>
+          <input type="text" id="verify-code" placeholder="123456" required />
+        </div>
+        <button id="btn-verify-submit" class="btn-login">Verify & Sign In</button>
+      </div>
 
       <!-- Forgot-password flow (hidden by default) -->
       <div id="forgot-pw-panel" style="display:none;margin-top:12px">

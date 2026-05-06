@@ -246,8 +246,70 @@ function handleForgotPwConfirm() {
   });
 }
 
-// ===== NAV =====
-function showSection(name) {
+// ===== COGNITO SIGN UP / VERIFY =====
+
+function toggleSignUp(show) {
+  $('login-form').style.display = show ? 'none' : 'block';
+  $('signup-panel').style.display = show ? 'block' : 'none';
+  $('btn-demo').style.display = show ? 'none' : 'block';
+  document.querySelector('.login-divider').style.display = show ? 'none' : 'block';
+  document.querySelector('.login-footer').style.display = show ? 'none' : 'block';
+  $('login-title').textContent = show ? 'Create Account' : 'Welcome back';
+  $('login-sub').textContent = show ? 'Join the AquaSense network' : 'Securely access your water usage dashboard';
+}
+
+async function handleSignUp(e) {
+  e.preventDefault();
+  const name = $('signup-name').value;
+  const email = $('signup-email').value.trim();
+  const password = $('signup-password').value;
+  const meter = $('signup-meter').value;
+  
+  const btn = $('btn-signup-submit');
+  const err = $('login-error');
+  btn.textContent = 'Creating...';
+  btn.disabled = true;
+  err.textContent = '';
+
+  const attributeList = [
+    new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'name', Value: name }),
+    new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'custom:meter_id', Value: meter || 'pending' }),
+    new AmazonCognitoIdentity.CognitoUserAttribute({ Name: 'custom:account_type', Value: 'residential' })
+  ];
+
+  userPool.signUp(email, password, attributeList, null, (err, result) => {
+    btn.disabled = false;
+    btn.textContent = 'Create Account';
+    if (err) {
+      $('login-error').textContent = err.message || JSON.stringify(err);
+      return;
+    }
+    // Show verification panel
+    $('signup-panel').style.display = 'none';
+    $('verify-panel').style.display = 'block';
+    $('login-title').textContent = 'Verify Email';
+  });
+}
+
+async function handleVerifyCode() {
+  const email = $('signup-email').value.trim() || $('login-email').value.trim();
+  const code = $('verify-code').value.trim();
+  const err = $('login-error');
+  
+  const userData = { Username: email, Pool: userPool };
+  const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+  cognitoUser.confirmRegistration(code, true, (err, result) => {
+    if (err) {
+      err.textContent = err.message || JSON.stringify(err);
+      return;
+    }
+    alert('Verification successful! You can now sign in.');
+    toggleSignUp(false);
+    $('verify-panel').style.display = 'none';
+  });
+}
+
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   $('section-' + name)?.classList.add('active');
@@ -649,6 +711,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('btn-forgot-password')?.addEventListener('click', e => { e.preventDefault(); toggleForgotPw(true); });
   $('btn-send-code')?.addEventListener('click', handleForgotPwSend);
   $('btn-confirm-reset')?.addEventListener('click', handleForgotPwConfirm);
+
+  // Wire Sign Up
+  $('link-show-signup')?.addEventListener('click', e => { e.preventDefault(); toggleSignUp(true); });
+  $('link-show-login')?.addEventListener('click', e => { e.preventDefault(); toggleSignUp(false); });
+  $('signup-form')?.addEventListener('submit', handleSignUp);
+  $('btn-verify-submit')?.addEventListener('click', handleVerifyCode);
 
   // Check for saved session
   const loggedIn = await checkExistingAuth();
