@@ -252,10 +252,10 @@ function toggleSignUp(show) {
   $('login-form').style.display = show ? 'none' : 'block';
   $('signup-panel').style.display = show ? 'block' : 'none';
   $('btn-demo').style.display = show ? 'none' : 'block';
-  document.querySelector('.login-divider').style.display = show ? 'none' : 'block';
-  document.querySelector('.login-footer').style.display = show ? 'none' : 'block';
-  $('login-title').textContent = show ? 'Create Account' : 'Welcome back';
-  $('login-sub').textContent = show ? 'Join the AquaSense network' : 'Securely access your water usage dashboard';
+  if ($('login-divider')) $('login-divider').style.display = show ? 'none' : 'block';
+  if ($('login-footer-signin')) $('login-footer-signin').style.display = show ? 'none' : 'block';
+  if ($('login-title')) $('login-title').textContent = show ? 'Create Account' : 'Welcome back';
+  if ($('login-sub')) $('login-sub').textContent = show ? 'Join the AquaSense network' : 'Securely access your water usage dashboard';
 }
 
 async function handleSignUp(e) {
