@@ -1,54 +1,38 @@
-# ============================================================
-# AquaSense – Build & Push to ECR
-# Uses the EXISTING ECR repositories created by Terraform:
-#   tf-aqua-sense-production/user-service
-#   tf-aqua-sense-production/billing-service
-#   tf-aqua-sense-production/usage-service
-#   tf-aqua-sense-production/alert-service
-#   tf-aqua-sense-production/simulator   ← add via Terraform if needed
-#
-# Naming pattern from main.tf:
-#   name_prefix = "tf-${project_name}-${environment}"
-#               = "tf-aqua-sense-production"
-#   repo name   = "${name_prefix}/${service}"
-# ============================================================
-
-name: Build & Push to ECR
+name: Build, Push to ECR & Deploy ECS
 
 on:
   push:
     branches:
       - main
       - master
-  workflow_dispatch:   # manual trigger builds ALL services
+  workflow_dispatch:
 
 env:
-  AWS_REGION:   ap-south-1
-  # The name_prefix Terraform uses: tf-${project_name}-${environment}
-  NAME_PREFIX:  tf-aqua-sense-production
+  AWS_REGION: ap-south-1
+  NAME_PREFIX: tf-aqua-sense-production
+  ECS_CLUSTER: aqua-sense-prod-cluster
 
-# ── OIDC permissions ─────────────────────────────────────────────────────────
 permissions:
   contents: read
   id-token: write
 
 jobs:
-  # ──────────────────────────────────────────────────────────────────────────
-  # JOB 1: Detect which service folders changed
-  # ──────────────────────────────────────────────────────────────────────────
+
+# ============================================================
+# 1. Detect Changes
+# ============================================================
   changes:
-    name: Detect Changed Services
     runs-on: ubuntu-latest
     outputs:
-      user-service:    ${{ steps.filter.outputs.user-service }}
+      user-service: ${{ steps.filter.outputs.user-service }}
       billing-service: ${{ steps.filter.outputs.billing-service }}
-      usage-service:   ${{ steps.filter.outputs.usage-service }}
-      alert-service:   ${{ steps.filter.outputs.alert-service }}
-      simulator:       ${{ steps.filter.outputs.simulator }}
+      usage-service: ${{ steps.filter.outputs.usage-service }}
+      alert-service: ${{ steps.filter.outputs.alert-service }}
+
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0   # 🔥 FIXED
 
       - uses: dorny/paths-filter@v3
         id: filter
@@ -56,234 +40,171 @@ jobs:
           filters: |
             user-service:
               - 'services/user-service/**'
-              - 'services/db/**'
-              - 'services/.dockerignore'
             billing-service:
               - 'services/billing-service/**'
-              - 'services/db/**'
-              - 'services/.dockerignore'
             usage-service:
               - 'services/usage-service/**'
-              - 'services/db/**'
-              - 'services/.dockerignore'
             alert-service:
               - 'services/alert-service/**'
-              - 'services/db/**'
-              - 'services/.dockerignore'
-            simulator:
-              - 'services/simulator/**'
 
-  # ──────────────────────────────────────────────────────────────────────────
-  # Reusable step logic is expressed via a matrix-style pattern.
-  # Each service job is explicit so build contexts / Dockerfile paths
-  # can differ (Node services use services/ as context; simulator uses
-  # services/simulator/ as context).
-  # ──────────────────────────────────────────────────────────────────────────
 
-  # ── user-service ──────────────────────────────────────────────────────────
+# ============================================================
+# 2. USER SERVICE
+# ============================================================
   user-service:
-    name: "user-service → ECR (tf-aqua-sense-production/user-service)"
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.user-service == 'true' || github.event_name == 'workflow_dispatch' }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to AWS via OIDC
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region:     ${{ env.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Log in to ECR
-        id: ecr-login
+      - name: Login to ECR
+        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push
+      - name: Build & Push
         env:
-          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          REPO:     ${{ env.NAME_PREFIX }}/user-service
-          SHA:      ${{ github.sha }}
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE: ${{ env.NAME_PREFIX }}/user-service
+          SHA: ${{ github.sha }}
         run: |
-          IMAGE="$REGISTRY/$REPO"
-          echo "→ Building $IMAGE"
-          docker build \
-            --file  services/user-service/Dockerfile \
-            --tag   "$IMAGE:latest" \
-            --tag   "$IMAGE:$SHA" \
-            services/
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$SHA"
-          echo "✅ Pushed $IMAGE:latest  |  $IMAGE:$SHA"
+          docker build -t $REGISTRY/$IMAGE:$SHA -f services/user-service/Dockerfile services/
+          docker push $REGISTRY/$IMAGE:$SHA
 
-  # ── billing-service ───────────────────────────────────────────────────────
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service user-service \
+            --force-new-deployment
+
+
+# ============================================================
+# 3. BILLING SERVICE
+# ============================================================
   billing-service:
-    name: "billing-service → ECR (tf-aqua-sense-production/billing-service)"
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.billing-service == 'true' || github.event_name == 'workflow_dispatch' }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to AWS via OIDC
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region:     ${{ env.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Log in to ECR
-        id: ecr-login
+      - name: Login to ECR
+        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push
+      - name: Build & Push
         env:
-          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          REPO:     ${{ env.NAME_PREFIX }}/billing-service
-          SHA:      ${{ github.sha }}
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE: ${{ env.NAME_PREFIX }}/billing-service
+          SHA: ${{ github.sha }}
         run: |
-          IMAGE="$REGISTRY/$REPO"
-          echo "→ Building $IMAGE"
-          docker build \
-            --file  services/billing-service/Dockerfile \
-            --tag   "$IMAGE:latest" \
-            --tag   "$IMAGE:$SHA" \
-            services/
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$SHA"
-          echo "✅ Pushed $IMAGE:latest  |  $IMAGE:$SHA"
+          docker build -t $REGISTRY/$IMAGE:$SHA -f services/billing-service/Dockerfile services/
+          docker push $REGISTRY/$IMAGE:$SHA
 
-  # ── usage-service ─────────────────────────────────────────────────────────
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service billing-service \
+            --force-new-deployment
+
+
+# ============================================================
+# 4. USAGE SERVICE
+# ============================================================
   usage-service:
-    name: "usage-service → ECR (tf-aqua-sense-production/usage-service)"
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.usage-service == 'true' || github.event_name == 'workflow_dispatch' }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to AWS via OIDC
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region:     ${{ env.AWS_REGION }}
 
-      - name: Log in to ECR
-        id: ecr-login
+      - name: Login to ECR
+        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push
+      - name: Build & Push
         env:
-          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          REPO:     ${{ env.NAME_PREFIX }}/usage-service
-          SHA:      ${{ github.sha }}
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE: ${{ env.NAME_PREFIX }}/usage-service
+          SHA: ${{ github.sha }}
         run: |
-          IMAGE="$REGISTRY/$REPO"
-          echo "→ Building $IMAGE"
-          docker build \
-            --file  services/usage-service/Dockerfile \
-            --tag   "$IMAGE:latest" \
-            --tag   "$IMAGE:$SHA" \
-            services/
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$SHA"
-          echo "✅ Pushed $IMAGE:latest  |  $IMAGE:$SHA"
+          docker build -t $REGISTRY/$IMAGE:$SHA -f services/usage-service/Dockerfile services/
+          docker push $REGISTRY/$IMAGE:$SHA
 
-  # ── alert-service ─────────────────────────────────────────────────────────
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service usage-service \
+            --force-new-deployment
+
+
+# ============================================================
+# 5. ALERT SERVICE
+# ============================================================
   alert-service:
-    name: "alert-service → ECR (tf-aqua-sense-production/alert-service)"
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.alert-service == 'true' || github.event_name == 'workflow_dispatch' }}
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Authenticate to AWS via OIDC
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region:     ${{ env.AWS_REGION }}
 
-      - name: Log in to ECR
-        id: ecr-login
+      - name: Login to ECR
+        id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push
+      - name: Build & Push
         env:
-          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          REPO:     ${{ env.NAME_PREFIX }}/alert-service
-          SHA:      ${{ github.sha }}
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+          IMAGE: ${{ env.NAME_PREFIX }}/alert-service
+          SHA: ${{ github.sha }}
         run: |
-          IMAGE="$REGISTRY/$REPO"
-          echo "→ Building $IMAGE"
-          docker build \
-            --file  services/alert-service/Dockerfile \
-            --tag   "$IMAGE:latest" \
-            --tag   "$IMAGE:$SHA" \
-            services/
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$SHA"
-          echo "✅ Pushed $IMAGE:latest  |  $IMAGE:$SHA"
+          docker build -t $REGISTRY/$IMAGE:$SHA -f services/alert-service/Dockerfile services/
+          docker push $REGISTRY/$IMAGE:$SHA
 
-  # ── simulator ─────────────────────────────────────────────────────────────
-  # NOTE: The simulator ECR repo is NOT in the current Terraform config.
-  # To add it, include "simulator" in the services list in:
-  #   infra/terraform/main.tf  →  module "ecr" { services = [..., "simulator"] }
-  # Then run: terraform apply
-  # Until then this job targets the same name_prefix pattern for consistency.
-  simulator:
-    name: "simulator → ECR (tf-aqua-sense-production/simulator)"
-    runs-on: ubuntu-latest
-    needs: changes
-    if: ${{ needs.changes.outputs.simulator == 'true' || github.event_name == 'workflow_dispatch' }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Authenticate to AWS via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region:     ${{ env.AWS_REGION }}
-
-      - name: Log in to ECR
-        id: ecr-login
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build & push
-        env:
-          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-          REPO:     ${{ env.NAME_PREFIX }}/simulator
-          SHA:      ${{ github.sha }}
+      - name: Deploy to ECS
         run: |
-          IMAGE="$REGISTRY/$REPO"
-          echo "→ Building $IMAGE"
-          # Simulator uses its own folder as build context
-          docker build \
-            --file  services/simulator/Dockerfile \
-            --tag   "$IMAGE:latest" \
-            --tag   "$IMAGE:$SHA" \
-            services/simulator/
-          docker push "$IMAGE:latest"
-          docker push "$IMAGE:$SHA"
-          echo "✅ Pushed $IMAGE:latest  |  $IMAGE:$SHA"
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service alert-service \
+            --force-new-deployment
 
-  # ── Pipeline summary ───────────────────────────────────────────────────────
+
+# ============================================================
+# SUMMARY
+# ============================================================
   summary:
-    name: Pipeline Summary
     runs-on: ubuntu-latest
-    needs: [user-service, billing-service, usage-service, alert-service, simulator]
+    needs: [user-service, billing-service, usage-service, alert-service]
     if: always()
+
     steps:
-      - name: Print results
-        run: |
-          echo "=================================================="
-          echo "  AquaSense ECR Push Summary"
-          echo "  Region    : ${{ env.AWS_REGION }}"
-          echo "  Prefix    : ${{ env.NAME_PREFIX }}"
-          echo "  Commit    : ${{ github.sha }}"
-          echo "=================================================="
-          echo "  user-service    : ${{ needs.user-service.result }}"
-          echo "  billing-service : ${{ needs.billing-service.result }}"
-          echo "  usage-service   : ${{ needs.usage-service.result }}"
-          echo "  alert-service   : ${{ needs.alert-service.result }}"
-          echo "  simulator       : ${{ needs.simulator.result }}"
-          echo "=================================================="
+      - run: |
+          echo "==================================="
+          echo "ECR + ECS Deployment Completed"
+          echo "Commit: ${{ github.sha }}"
+          echo "==================================="

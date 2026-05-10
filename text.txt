@@ -1,1 +1,4 @@
-python iot_meter_simulator.py --endpoint ax7u8iowtmh2-ats.iot.ap-south-1.amazonaws.com --cert certs/device.pem.crt --key certs/private.pem.key --ca certs/AmazonRootCA1.pem --meter-ids meter-001 --interval 5
+admin_cognito_client_id = "2ik5k6kj5hp40ge3fr4rjss05l"
+admin_user_pool_id = "ap-south-1_uxqvLCPAT"
+customer_cognito_client_id = "53a4d878tmrcj9h9d7ec2qc2t5"
+customer_user_pool_id = "ap-south-1_GBei4V5ZL"

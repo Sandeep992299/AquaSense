@@ -10,19 +10,20 @@
  *             Run: terraform output -json | jq '{userPoolId:.customer_user_pool_id.value,clientId:.customer_cognito_client_id.value}'
  */
 window.AQUA_CONFIG = {
-  // ── Backend microservice URLs ──────────────────────────────────────
-  user:    'http://localhost:8081',   // /api/auth/*, /api/users/*
-  billing: 'http://localhost:8082',   // /api/bills/*, /api/payments/*, /api/billing/*
-  usage:   'http://localhost:8083',   // /api/usage/*
-  alert:   'http://localhost:8084',   // /api/alerts/*
+  baseUrl: 'http://tf-aqua-sense-production-alb-840180883.ap-south-1.elb.amazonaws.com',
 
-  // ── AWS Cognito (Customer Pool) ────────────────────────────────────
-  // TODO: Replace the placeholder values below with your actual Cognito outputs
-  // from: terraform output customer_user_pool_id && terraform output customer_cognito_client_id
+  endpoints: {
+    auth:    '/api/auth',
+    users:   '/api/users',
+    billing: '/api/bills',
+    usage:   '/api/usage',
+    alerts:  '/api/alerts',
+  },
+
   cognito: {
     region:     'ap-south-1',
-    userPoolId: 'ap-south-1_GBei4V5ZL',        // ← terraform output customer_user_pool_id
-    clientId:   '53a4d878tmrcj9h9d7ec2qc2t5',   // ← terraform output customer_cognito_client_id
+    userPoolId: 'ap-south-1_GBei4V5ZL',
+    clientId:   '53a4d878tmrcj9h9d7ec2qc2t5',
   },
 };
 
