@@ -312,7 +312,14 @@ function showSection(name) {
     water:'Water Usage', energy:'Energy Monitor', alerts:'Alerts', reports:'Reports', meters:'My Meters'
   }[name] || name;
   history.pushState({ section: name }, '', '#' + name);
-  initSectionCharts(name);
+  // Initialize section-specific content
+  if (name === 'live')      initLiveSection();
+  if (name === 'crud')      initCrudSection();
+  if (name === 'water')     renderDetailCharts();
+  if (name === 'energy')    renderEnergyCharts();
+  if (name === 'alerts')    loadFullAlerts();
+  if (name === 'reports')   renderReports();
+  if (name === 'meters')    loadAndRenderMeters();
 }
 function toggleSidebar() { $('sidebar')?.classList.toggle('open'); }
 
@@ -1210,12 +1217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   window.addEventListener('popstate', e => {
     const section = e.state?.section || 'dashboard';
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    $('section-' + section)?.classList.add('active');
-    $('nav-' + section)?.classList.add('active');
-    if ($('page-title')) $('page-title').textContent = section.charAt(0).toUpperCase() + section.slice(1);
-    initSectionCharts(section);
+    showSection(section);
   });
 
   // Handle direct URL hash navigation
