@@ -4,11 +4,6 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
-    inputs:
-      service:
-        description: 'Force deploy specific service (or "all")'
-        required: false
-        default: 'all'
 
 env:
   AWS_REGION:    ap-south-1
@@ -18,49 +13,14 @@ env:
   S3_PORTAL:     aquasense-portal
 
 # ─────────────────────────────────────────────────────────────────
-# JOB 0 – Detect which services changed
+# All jobs run in parallel on every push to main / manual trigger
 # ─────────────────────────────────────────────────────────────────
 jobs:
-  changes:
-    name: 🔍 Detect Changes
-    runs-on: ubuntu-latest
-    outputs:
-      user:    ${{ steps.filter.outputs.user }}
-      billing: ${{ steps.filter.outputs.billing }}
-      usage:   ${{ steps.filter.outputs.usage }}
-      alert:   ${{ steps.filter.outputs.alert }}
-      portal:  ${{ steps.filter.outputs.portal }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Detect changed paths
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            user:
-              - 'services/user-service/**'
-            billing:
-              - 'services/billing-service/**'
-            usage:
-              - 'services/usage-service/**'
-            alert:
-              - 'services/alert-service/**'
-            portal:
-              - 'portal/**'
 
 # ─── USER-SERVICE ────────────────────────────────────────────────
   user-service:
     name: 👤 user-service
     runs-on: ubuntu-latest
-    needs: changes
-    if: |
-      needs.changes.outputs.user == 'true' ||
-      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +36,7 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push Docker image
+      - name: Build & push image
         env:
           IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/user-service
           TAG:   ${{ github.sha }}
@@ -84,7 +44,6 @@ jobs:
           echo "▶ Building user-service → $IMAGE:$TAG"
           docker build \
             --build-arg IMAGE_TAG=$TAG \
-            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/user-service/Dockerfile \
@@ -93,33 +52,20 @@ jobs:
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
 
-      - name: Force-deploy to ECS
+      - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster  ${{ env.CLUSTER_NAME }} \
             --service  ${{ env.NAME_PREFIX }}-user-service \
             --force-new-deployment \
             --region   ${{ env.AWS_REGION }} \
-            --query    "service.{status:status,desired:desiredCount,running:runningCount}" \
-            --output   table
-
-      - name: Wait for service stability
-        run: |
-          echo "⏳ Waiting for user-service to stabilise..."
-          aws ecs wait services-stable \
-            --cluster  ${{ env.CLUSTER_NAME }} \
-            --services ${{ env.NAME_PREFIX }}-user-service \
-            --region   ${{ env.AWS_REGION }}
-          echo "✅ user-service is stable"
+            --output   json | python3 -c "import sys,json; s=json.load(sys.stdin)['service']; print(f'Service: {s[\"status\"]} | Desired: {s[\"desiredCount\"]} | Running: {s[\"runningCount\"]}')"
+          echo "✅ user-service deployment triggered"
 
 # ─── BILLING-SERVICE ─────────────────────────────────────────────
   billing-service:
     name: 💰 billing-service
     runs-on: ubuntu-latest
-    needs: changes
-    if: |
-      needs.changes.outputs.billing == 'true' ||
-      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
@@ -135,7 +81,7 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push Docker image
+      - name: Build & push image
         env:
           IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/billing-service
           TAG:   ${{ github.sha }}
@@ -143,7 +89,6 @@ jobs:
           echo "▶ Building billing-service → $IMAGE:$TAG"
           docker build \
             --build-arg IMAGE_TAG=$TAG \
-            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/billing-service/Dockerfile \
@@ -152,33 +97,20 @@ jobs:
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
 
-      - name: Force-deploy to ECS
+      - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster  ${{ env.CLUSTER_NAME }} \
             --service  ${{ env.NAME_PREFIX }}-billing-service \
             --force-new-deployment \
             --region   ${{ env.AWS_REGION }} \
-            --query    "service.{status:status,desired:desiredCount,running:runningCount}" \
-            --output   table
-
-      - name: Wait for service stability
-        run: |
-          echo "⏳ Waiting for billing-service to stabilise..."
-          aws ecs wait services-stable \
-            --cluster  ${{ env.CLUSTER_NAME }} \
-            --services ${{ env.NAME_PREFIX }}-billing-service \
-            --region   ${{ env.AWS_REGION }}
-          echo "✅ billing-service is stable"
+            --output   json | python3 -c "import sys,json; s=json.load(sys.stdin)['service']; print(f'Service: {s[\"status\"]} | Desired: {s[\"desiredCount\"]} | Running: {s[\"runningCount\"]}')"
+          echo "✅ billing-service deployment triggered"
 
 # ─── USAGE-SERVICE ───────────────────────────────────────────────
   usage-service:
     name: 📊 usage-service
     runs-on: ubuntu-latest
-    needs: changes
-    if: |
-      needs.changes.outputs.usage == 'true' ||
-      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
@@ -194,7 +126,7 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push Docker image
+      - name: Build & push image
         env:
           IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/usage-service
           TAG:   ${{ github.sha }}
@@ -202,7 +134,6 @@ jobs:
           echo "▶ Building usage-service → $IMAGE:$TAG"
           docker build \
             --build-arg IMAGE_TAG=$TAG \
-            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/usage-service/Dockerfile \
@@ -211,33 +142,20 @@ jobs:
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
 
-      - name: Force-deploy to ECS
+      - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster  ${{ env.CLUSTER_NAME }} \
             --service  ${{ env.NAME_PREFIX }}-usage-service \
             --force-new-deployment \
             --region   ${{ env.AWS_REGION }} \
-            --query    "service.{status:status,desired:desiredCount,running:runningCount}" \
-            --output   table
-
-      - name: Wait for service stability
-        run: |
-          echo "⏳ Waiting for usage-service to stabilise..."
-          aws ecs wait services-stable \
-            --cluster  ${{ env.CLUSTER_NAME }} \
-            --services ${{ env.NAME_PREFIX }}-usage-service \
-            --region   ${{ env.AWS_REGION }}
-          echo "✅ usage-service is stable"
+            --output   json | python3 -c "import sys,json; s=json.load(sys.stdin)['service']; print(f'Service: {s[\"status\"]} | Desired: {s[\"desiredCount\"]} | Running: {s[\"runningCount\"]}')"
+          echo "✅ usage-service deployment triggered"
 
 # ─── ALERT-SERVICE ───────────────────────────────────────────────
   alert-service:
     name: 🚨 alert-service
     runs-on: ubuntu-latest
-    needs: changes
-    if: |
-      needs.changes.outputs.alert == 'true' ||
-      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
@@ -253,7 +171,7 @@ jobs:
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push Docker image
+      - name: Build & push image
         env:
           IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/alert-service
           TAG:   ${{ github.sha }}
@@ -261,7 +179,6 @@ jobs:
           echo "▶ Building alert-service → $IMAGE:$TAG"
           docker build \
             --build-arg IMAGE_TAG=$TAG \
-            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/alert-service/Dockerfile \
@@ -270,33 +187,20 @@ jobs:
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
 
-      - name: Force-deploy to ECS
+      - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster  ${{ env.CLUSTER_NAME }} \
             --service  ${{ env.NAME_PREFIX }}-alert-service \
             --force-new-deployment \
             --region   ${{ env.AWS_REGION }} \
-            --query    "service.{status:status,desired:desiredCount,running:runningCount}" \
-            --output   table
-
-      - name: Wait for service stability
-        run: |
-          echo "⏳ Waiting for alert-service to stabilise..."
-          aws ecs wait services-stable \
-            --cluster  ${{ env.CLUSTER_NAME }} \
-            --services ${{ env.NAME_PREFIX }}-alert-service \
-            --region   ${{ env.AWS_REGION }}
-          echo "✅ alert-service is stable"
+            --output   json | python3 -c "import sys,json; s=json.load(sys.stdin)['service']; print(f'Service: {s[\"status\"]} | Desired: {s[\"desiredCount\"]} | Running: {s[\"runningCount\"]}')"
+          echo "✅ alert-service deployment triggered"
 
 # ─── PORTAL → S3 ─────────────────────────────────────────────────
   portal:
     name: 🌐 Portal → S3
     runs-on: ubuntu-latest
-    needs: changes
-    if: |
-      needs.changes.outputs.portal == 'true' ||
-      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
@@ -321,23 +225,23 @@ jobs:
   summary:
     name: 📋 Deployment Summary
     runs-on: ubuntu-latest
-    needs: [changes, user-service, billing-service, usage-service, alert-service, portal]
+    needs: [user-service, billing-service, usage-service, alert-service, portal]
     if: always()
 
     steps:
-      - name: Print deployment summary
+      - name: Print summary
         run: |
-          echo "╔════════════════════════════════════════════════════════╗"
-          echo "║         AquaSense CI/CD – Deployment Summary           ║"
-          echo "╠════════════════════════════════════════════════════════╣"
-          echo "║  Commit   : ${{ github.sha }}"
-          echo "║  Branch   : ${{ github.ref_name }}"
-          echo "║  Actor    : ${{ github.actor }}"
-          echo "║  Trigger  : ${{ github.event_name }}"
-          echo "╠════════════════════════════════════════════════════════╣"
-          echo "║  user-service    changed=${{ needs.changes.outputs.user }}    result=${{ needs.user-service.result }}"
-          echo "║  billing-service changed=${{ needs.changes.outputs.billing }} result=${{ needs.billing-service.result }}"
-          echo "║  usage-service   changed=${{ needs.changes.outputs.usage }}   result=${{ needs.usage-service.result }}"
-          echo "║  alert-service   changed=${{ needs.changes.outputs.alert }}   result=${{ needs.alert-service.result }}"
-          echo "║  portal (S3)     changed=${{ needs.changes.outputs.portal }}  result=${{ needs.portal.result }}"
-          echo "╚════════════════════════════════════════════════════════╝"
+          echo "╔══════════════════════════════════════════════════════╗"
+          echo "║       AquaSense – Deployment Summary                 ║"
+          echo "╠══════════════════════════════════════════════════════╣"
+          echo "║  Commit  : ${{ github.sha }}"
+          echo "║  Branch  : ${{ github.ref_name }}"
+          echo "║  Actor   : ${{ github.actor }}"
+          echo "║  Trigger : ${{ github.event_name }}"
+          echo "╠══════════════════════════════════════════════════════╣"
+          echo "║  👤 user-service    : ${{ needs.user-service.result }}"
+          echo "║  💰 billing-service : ${{ needs.billing-service.result }}"
+          echo "║  📊 usage-service   : ${{ needs.usage-service.result }}"
+          echo "║  🚨 alert-service   : ${{ needs.alert-service.result }}"
+          echo "║  🌐 portal (S3)     : ${{ needs.portal.result }}"
+          echo "╚══════════════════════════════════════════════════════╝"
