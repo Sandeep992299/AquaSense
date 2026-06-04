@@ -97,7 +97,7 @@
           <p style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">We sent a code to your email.</p>
           <input type="text" id="verify-code" placeholder="123456" required />
         </div>
-        <button id="btn-verify-submit" class="btn-login">Verify & Sign In</button>
+        <button id="btn-verify-submit" class="btn-login">Verify &amp; Sign In</button>
       </div>
 
       <!-- Forgot-password flow (hidden by default) -->
@@ -130,6 +130,17 @@
     <span>🎭 Demo Mode — simulated data. <a href="#" onclick="showLoginModal();return false;">Sign in for live data</a></span>
   </div>
 
+  <!-- CRUD MODAL OVERLAY -->
+  <div id="crud-modal" class="crud-modal-overlay" style="display:none">
+    <div class="crud-modal-box" id="crud-modal-box">
+      <div class="crud-modal-header">
+        <h3 id="crud-modal-title">Action</h3>
+        <button class="crud-modal-close" onclick="closeCrudModal()">✕</button>
+      </div>
+      <div id="crud-modal-body"></div>
+    </div>
+  </div>
+
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
@@ -155,6 +166,15 @@
       <a href="javascript:void(0)" class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         <span>Dashboard</span>
+      </a>
+      <a href="javascript:void(0)" class="nav-item" id="nav-live" onclick="showSection('live')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M5.5 5.5A10 10 0 0 0 2 12a10 10 0 0 0 3.5 7.5"/><path d="M18.5 5.5A10 10 0 0 1 22 12a10 10 0 0 1-3.5 7.5"/><path d="M8.5 8.5A6 6 0 0 0 6 12a6 6 0 0 0 2.5 4.9"/><path d="M15.5 8.5A6 6 0 0 1 18 12a6 6 0 0 1-2.5 4.9"/></svg>
+        <span>Live Telemetry</span>
+        <span class="live-nav-dot"></span>
+      </a>
+      <a href="javascript:void(0)" class="nav-item" id="nav-crud" onclick="showSection('crud')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        <span>Data Management</span>
       </a>
       <a href="javascript:void(0)" class="nav-item" id="nav-water" onclick="showSection('water')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C12 2 4 9 4 14.5C4 18.64 7.58 22 12 22C16.42 22 20 18.64 20 14.5C20 9 12 2 12 2Z"/></svg>
@@ -304,6 +324,196 @@
               <a href="#" onclick="showSection('alerts')" class="see-all">See all</a>
             </div>
             <div class="alert-list" id="dashboard-alerts"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LIVE TELEMETRY SECTION -->
+      <section id="section-live" class="section">
+        <div class="section-header">
+          <h2>Live IoT Telemetry</h2>
+          <p>Real-time readings streamed from your smart meters every 5 seconds via AWS IoT Core → RDS</p>
+        </div>
+
+        <!-- Meter Status Cards -->
+        <div class="live-meter-grid" id="live-meter-cards"></div>
+
+        <!-- Real-time Chart -->
+        <div class="chart-card" style="margin-top:20px">
+          <div class="chart-header">
+            <h3>Real-Time Flow Chart</h3>
+            <div style="display:flex;align-items:center;gap:12px">
+              <select id="live-chart-meter" class="chip-select" onchange="switchLiveChartMeter(this.value)">
+                <option value="SMT-W-0041">SMT-W-0041 (Kitchen)</option>
+                <option value="SMT-W-0042">SMT-W-0042 (Garden)</option>
+                <option value="SMT-E-0087">SMT-E-0087 (Energy)</option>
+              </select>
+              <span class="live-chip"><span class="pulse-dot small"></span>LIVE</span>
+            </div>
+          </div>
+          <canvas id="chart-live-flow" height="90"></canvas>
+        </div>
+
+        <!-- Latest Readings Table -->
+        <div class="chart-card" style="margin-top:20px">
+          <div class="chart-header">
+            <h3>Latest Readings — All Meters</h3>
+            <div style="display:flex;gap:8px">
+              <button class="chip active" onclick="filterLiveReadings('all',this)" id="live-filter-all">All</button>
+              <button class="chip" onclick="filterLiveReadings('water',this)" id="live-filter-water">Water</button>
+              <button class="chip" onclick="filterLiveReadings('energy',this)" id="live-filter-energy">Energy</button>
+              <button class="chip" onclick="refreshLiveReadings()" style="background:rgba(56,189,248,0.15);color:#38bdf8;border-color:rgba(56,189,248,0.3)">⟳ Refresh</button>
+            </div>
+          </div>
+          <div class="readings-table-wrap">
+            <table class="readings-table" id="live-readings-table">
+              <thead>
+                <tr>
+                  <th>Reading ID</th>
+                  <th>Meter ID</th>
+                  <th>Type</th>
+                  <th>Value</th>
+                  <th>Pressure</th>
+                  <th>Quality</th>
+                  <th>Recorded At</th>
+                </tr>
+              </thead>
+              <tbody id="live-readings-body">
+                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Loading readings…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- DATA MANAGEMENT (CRUD) SECTION -->
+      <section id="section-crud" class="section">
+        <div class="section-header">
+          <h2>Data Management</h2>
+          <p>Create, read, update and delete readings, meters and alerts via live API calls</p>
+        </div>
+
+        <!-- CRUD Tabs -->
+        <div class="crud-tabs">
+          <button class="crud-tab active" id="crud-tab-readings" onclick="switchCrudTab('readings')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Readings
+          </button>
+          <button class="crud-tab" id="crud-tab-meters" onclick="switchCrudTab('meters')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Meters
+          </button>
+          <button class="crud-tab" id="crud-tab-alerts" onclick="switchCrudTab('alerts')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Alerts
+          </button>
+        </div>
+
+        <!-- READINGS CRUD panel -->
+        <div class="crud-panel active" id="crud-panel-readings">
+          <div class="crud-panel-header">
+            <div class="crud-panel-title">
+              <h3>Meter Readings</h3>
+              <span class="crud-count" id="readings-count">–</span>
+            </div>
+            <button class="btn-crud-create" id="btn-create-reading" onclick="openCreateReading()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Ingest Reading
+            </button>
+          </div>
+          <div class="crud-filter-row">
+            <select id="crud-meter-filter" onchange="loadCrudReadings()">
+              <option value="SMT-W-0041">SMT-W-0041 – Kitchen Water</option>
+              <option value="SMT-W-0042">SMT-W-0042 – Garden Water</option>
+              <option value="SMT-E-0087">SMT-E-0087 – Energy Board</option>
+            </select>
+            <input type="number" id="crud-readings-limit" value="20" min="5" max="100" style="width:80px" onchange="loadCrudReadings()" />
+            <label style="color:var(--text-secondary);font-size:12px">rows</label>
+          </div>
+          <div class="readings-table-wrap">
+            <table class="readings-table" id="crud-readings-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Meter</th>
+                  <th>Type</th>
+                  <th>Value</th>
+                  <th>Pressure</th>
+                  <th>Quality</th>
+                  <th>Recorded At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="crud-readings-body">
+                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Select a meter and click refresh</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="crud-pagination" id="crud-readings-pagination"></div>
+        </div>
+
+        <!-- METERS CRUD panel -->
+        <div class="crud-panel" id="crud-panel-meters">
+          <div class="crud-panel-header">
+            <div class="crud-panel-title">
+              <h3>Smart Meters</h3>
+              <span class="crud-count" id="meters-crud-count">–</span>
+            </div>
+            <button class="btn-crud-create" onclick="openCreateMeter()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Register Meter
+            </button>
+          </div>
+          <div class="readings-table-wrap">
+            <table class="readings-table" id="crud-meters-table">
+              <thead>
+                <tr>
+                  <th>Meter ID</th>
+                  <th>Owner</th>
+                  <th>Type</th>
+                  <th>Location</th>
+                  <th>Status</th>
+                  <th>Latest Value</th>
+                  <th>Last Seen</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="crud-meters-body">
+                <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Loading meters…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ALERTS CRUD panel -->
+        <div class="crud-panel" id="crud-panel-alerts">
+          <div class="crud-panel-header">
+            <div class="crud-panel-title">
+              <h3>Alerts</h3>
+              <span class="crud-count" id="alerts-crud-count">–</span>
+            </div>
+            <button class="btn-crud-create" onclick="openCreateAlert()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Create Alert
+            </button>
+          </div>
+          <div class="readings-table-wrap">
+            <table class="readings-table" id="crud-alerts-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Severity</th>
+                  <th>Meter</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="crud-alerts-body">
+                <tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Loading alerts…</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

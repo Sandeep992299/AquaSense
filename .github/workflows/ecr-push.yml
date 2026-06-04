@@ -1,37 +1,47 @@
-name: Build, Push to ECR & Deploy ECS
+name: 🚀 AquaSense CI/CD – Build, Push ECR & Deploy ECS
 
 on:
   push:
     branches: [main, master]
   workflow_dispatch:
+    inputs:
+      service:
+        description: 'Force deploy specific service (or "all")'
+        required: false
+        default: 'all'
 
 env:
-  AWS_REGION: ap-south-1
-  NAME_PREFIX: tf-aqua-sense-production
-  CLUSTER_NAME: aqua-sense-cluster   # CHANGE THIS
-  ECS_SERVICE_PREFIX: aqua-sense     # CHANGE THIS
+  AWS_REGION:    ap-south-1
+  ECR_REGISTRY:  595529181954.dkr.ecr.ap-south-1.amazonaws.com
+  NAME_PREFIX:   tf-aqua-sense-production
+  CLUSTER_NAME:  tf-aqua-sense-production-cluster
+  S3_PORTAL:     aquasense-portal
 
 permissions:
   contents: read
-  id-token: write
+  id-token: write   # Required for OIDC authentication
 
+# ─────────────────────────────────────────────────────────────────
+# JOB 0 – Detect which services changed
+# ─────────────────────────────────────────────────────────────────
 jobs:
-
-# ─────────────────────────────────────────────
-# 1. Detect changes
-# ─────────────────────────────────────────────
   changes:
+    name: 🔍 Detect Changes
     runs-on: ubuntu-latest
     outputs:
-      user: ${{ steps.filter.outputs.user }}
+      user:    ${{ steps.filter.outputs.user }}
       billing: ${{ steps.filter.outputs.billing }}
-      usage: ${{ steps.filter.outputs.usage }}
-      alert: ${{ steps.filter.outputs.alert }}
+      usage:   ${{ steps.filter.outputs.usage }}
+      alert:   ${{ steps.filter.outputs.alert }}
+      portal:  ${{ steps.filter.outputs.portal }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # needed for path filtering on first commit
 
-      - name: Filter paths
+      - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
@@ -44,146 +54,291 @@ jobs:
               - 'services/usage-service/**'
             alert:
               - 'services/alert-service/**'
+            portal:
+              - 'portal/**'
 
+# ─────────────────────────────────────────────────────────────────
+# REUSABLE STEP TEMPLATE (defined inline per service)
+# Each job: checkout → AWS login → ECR login → build → push → ECS deploy
+# ─────────────────────────────────────────────────────────────────
 
-# ─────────────────────────────────────────────
-# 2. BUILD + PUSH + DEPLOY TEMPLATE LOGIC
-# (same pattern repeated per service)
-# ─────────────────────────────────────────────
-
+# ─── USER-SERVICE ────────────────────────────────────────────────
   user-service:
+    name: 👤 user-service
     runs-on: ubuntu-latest
     needs: changes
-    if: ${{ needs.changes.outputs.user == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: |
+      needs.changes.outputs.user == 'true' ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: AWS Login
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region:     ${{ env.AWS_REGION }}
 
-      - name: Login ECR
-        id: ecr
+      - name: Login to Amazon ECR
+        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push
+      - name: Build & push Docker image
         env:
-          REGISTRY: ${{ steps.ecr.outputs.registry }}
-          REPO: ${{ env.NAME_PREFIX }}/user-service
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/user-service
+          TAG:   ${{ github.sha }}
         run: |
-          IMAGE=$REGISTRY/$REPO
-          docker build -t $IMAGE:$IMAGE_TAG -t $IMAGE:latest services/
-          docker push $IMAGE:$IMAGE_TAG
+          echo "Building user-service image: $IMAGE:$TAG"
+          docker build \
+            --build-arg IMAGE_TAG=$TAG \
+            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t $IMAGE:$TAG \
+            -t $IMAGE:latest \
+            -f services/user-service/Dockerfile \
+            services/user-service/
+          docker push $IMAGE:$TAG
           docker push $IMAGE:latest
+          echo "✅ Pushed $IMAGE:$TAG"
 
-      - name: Deploy to ECS
+      - name: Deploy to ECS – force new deployment
         run: |
           aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $ECS_SERVICE_PREFIX-user-service \
-            --force-new-deployment
+            --cluster  ${{ env.CLUSTER_NAME }} \
+            --service  ${{ env.NAME_PREFIX }}-user-service \
+            --force-new-deployment \
+            --region   ${{ env.AWS_REGION }} \
+            --query    "service.{status:status,desiredCount:desiredCount}" \
+            --output   json
 
+      - name: Wait for ECS stability
+        run: |
+          echo "Waiting for user-service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --services ${{ env.NAME_PREFIX }}-user-service \
+            --region  ${{ env.AWS_REGION }}
+          echo "✅ user-service is stable"
 
-# ─────────────────────────────────────────────
-# billing-service
-# ─────────────────────────────────────────────
+# ─── BILLING-SERVICE ─────────────────────────────────────────────
   billing-service:
+    name: 💰 billing-service
     runs-on: ubuntu-latest
     needs: changes
-    if: ${{ needs.changes.outputs.billing == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: |
+      needs.changes.outputs.billing == 'true' ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: AWS Login
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region:     ${{ env.AWS_REGION }}
 
-      - name: Login ECR
-        id: ecr
+      - name: Login to Amazon ECR
+        id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push
+      - name: Build & push Docker image
         env:
-          REGISTRY: ${{ steps.ecr.outputs.registry }}
-          REPO: ${{ env.NAME_PREFIX }}/billing-service
-          IMAGE_TAG: ${{ github.sha }}
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/billing-service
+          TAG:   ${{ github.sha }}
         run: |
-          IMAGE=$REGISTRY/$REPO
-          docker build -t $IMAGE:$IMAGE_TAG -t $IMAGE:latest services/
-          docker push $IMAGE:$IMAGE_TAG
+          echo "Building billing-service image: $IMAGE:$TAG"
+          docker build \
+            --build-arg IMAGE_TAG=$TAG \
+            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t $IMAGE:$TAG \
+            -t $IMAGE:latest \
+            -f services/billing-service/Dockerfile \
+            services/billing-service/
+          docker push $IMAGE:$TAG
           docker push $IMAGE:latest
+          echo "✅ Pushed $IMAGE:$TAG"
 
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $ECS_SERVICE_PREFIX-billing-service \
-            --force-new-deployment
+            --cluster  ${{ env.CLUSTER_NAME }} \
+            --service  ${{ env.NAME_PREFIX }}-billing-service \
+            --force-new-deployment \
+            --region   ${{ env.AWS_REGION }} \
+            --query    "service.{status:status,desiredCount:desiredCount}" \
+            --output   json
 
+      - name: Wait for ECS stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --services ${{ env.NAME_PREFIX }}-billing-service \
+            --region  ${{ env.AWS_REGION }}
+          echo "✅ billing-service is stable"
 
-# ─────────────────────────────────────────────
-# usage-service
-# ─────────────────────────────────────────────
+# ─── USAGE-SERVICE ───────────────────────────────────────────────
   usage-service:
+    name: 📊 usage-service
     runs-on: ubuntu-latest
     needs: changes
-    if: ${{ needs.changes.outputs.usage == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: |
+      needs.changes.outputs.usage == 'true' ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-region:     ${{ env.AWS_REGION }}
 
-      - uses: aws-actions/amazon-ecr-login@v2
-        id: ecr
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push
+      - name: Build & push Docker image
+        env:
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/usage-service
+          TAG:   ${{ github.sha }}
         run: |
-          IMAGE=${{ steps.ecr.outputs.registry }}/${{ env.NAME_PREFIX }}/usage-service
-          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest services/
-          docker push $IMAGE:${{ github.sha }}
+          echo "Building usage-service image: $IMAGE:$TAG"
+          docker build \
+            --build-arg IMAGE_TAG=$TAG \
+            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t $IMAGE:$TAG \
+            -t $IMAGE:latest \
+            -f services/usage-service/Dockerfile \
+            services/usage-service/
+          docker push $IMAGE:$TAG
           docker push $IMAGE:latest
+          echo "✅ Pushed $IMAGE:$TAG"
 
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $ECS_SERVICE_PREFIX-usage-service \
-            --force-new-deployment
+            --cluster  ${{ env.CLUSTER_NAME }} \
+            --service  ${{ env.NAME_PREFIX }}-usage-service \
+            --force-new-deployment \
+            --region   ${{ env.AWS_REGION }} \
+            --query    "service.{status:status,desiredCount:desiredCount}" \
+            --output   json
 
+      - name: Wait for ECS stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --services ${{ env.NAME_PREFIX }}-usage-service \
+            --region  ${{ env.AWS_REGION }}
+          echo "✅ usage-service is stable"
 
-# ─────────────────────────────────────────────
-# alert-service
-# ─────────────────────────────────────────────
+# ─── ALERT-SERVICE ───────────────────────────────────────────────
   alert-service:
+    name: 🚨 alert-service
     runs-on: ubuntu-latest
     needs: changes
-    if: ${{ needs.changes.outputs.alert == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: |
+      needs.changes.outputs.alert == 'true' ||
+      github.event_name == 'workflow_dispatch'
 
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-      - uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & Push
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build & push Docker image
+        env:
+          IMAGE: ${{ env.ECR_REGISTRY }}/${{ env.NAME_PREFIX }}/alert-service
+          TAG:   ${{ github.sha }}
         run: |
-          IMAGE=${{ steps.ecr.outputs.registry }}/${{ env.NAME_PREFIX }}/alert-service
-          docker build -t $IMAGE:${{ github.sha }} -t $IMAGE:latest services/
-          docker push $IMAGE:${{ github.sha }}
+          echo "Building alert-service image: $IMAGE:$TAG"
+          docker build \
+            --build-arg IMAGE_TAG=$TAG \
+            --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+            -t $IMAGE:$TAG \
+            -t $IMAGE:latest \
+            -f services/alert-service/Dockerfile \
+            services/alert-service/
+          docker push $IMAGE:$TAG
           docker push $IMAGE:latest
+          echo "✅ Pushed $IMAGE:$TAG"
 
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
-            --cluster $CLUSTER_NAME \
-            --service $ECS_SERVICE_PREFIX-alert-service \
-            --force-new-deployment
+            --cluster  ${{ env.CLUSTER_NAME }} \
+            --service  ${{ env.NAME_PREFIX }}-alert-service \
+            --force-new-deployment \
+            --region   ${{ env.AWS_REGION }} \
+            --query    "service.{status:status,desiredCount:desiredCount}" \
+            --output   json
+
+      - name: Wait for ECS stability
+        run: |
+          aws ecs wait services-stable \
+            --cluster ${{ env.CLUSTER_NAME }} \
+            --services ${{ env.NAME_PREFIX }}-alert-service \
+            --region  ${{ env.AWS_REGION }}
+          echo "✅ alert-service is stable"
+
+# ─── PORTAL (S3 sync) ────────────────────────────────────────────
+  portal:
+    name: 🌐 Portal → S3
+    runs-on: ubuntu-latest
+    needs: changes
+    if: |
+      needs.changes.outputs.portal == 'true' ||
+      github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region:     ${{ env.AWS_REGION }}
+
+      - name: Sync portal to S3
+        run: |
+          echo "Syncing portal/ to s3://${{ env.S3_PORTAL }}"
+          aws s3 sync portal/ s3://${{ env.S3_PORTAL }}/ \
+            --delete \
+            --cache-control "no-cache, no-store, must-revalidate" \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ Portal deployed to S3"
+
+# ─── SUMMARY ─────────────────────────────────────────────────────
+  summary:
+    name: 📋 Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [user-service, billing-service, usage-service, alert-service, portal]
+    if: always()
+
+    steps:
+      - name: Print deployment summary
+        run: |
+          echo "╔══════════════════════════════════════════════════════╗"
+          echo "║        AquaSense CI/CD Deployment Summary            ║"
+          echo "╠══════════════════════════════════════════════════════╣"
+          echo "║  Commit  : ${{ github.sha }}"
+          echo "║  Branch  : ${{ github.ref_name }}"
+          echo "║  Actor   : ${{ github.actor }}"
+          echo "║  Trigger : ${{ github.event_name }}"
+          echo "╠══════════════════════════════════════════════════════╣"
+          echo "║  user-service    : ${{ needs.user-service.result }}"
+          echo "║  billing-service : ${{ needs.billing-service.result }}"
+          echo "║  usage-service   : ${{ needs.usage-service.result }}"
+          echo "║  alert-service   : ${{ needs.alert-service.result }}"
+          echo "║  portal (S3)     : ${{ needs.portal.result }}"
+          echo "╚══════════════════════════════════════════════════════╝"
