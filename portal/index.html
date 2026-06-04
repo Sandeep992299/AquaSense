@@ -189,6 +189,11 @@
         <span>Alerts</span>
         <span class="badge" id="alert-badge">3</span>
       </a>
+      <a href="javascript:void(0)" class="nav-item" id="nav-billing" onclick="showSection('billing')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span>Billing</span>
+        <span class="bill-badge" id="billing-unpaid-badge" style="display:none"></span>
+      </a>
       <a href="javascript:void(0)" class="nav-item" id="nav-reports" onclick="showSection('reports')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         <span>Reports</span>
@@ -586,6 +591,170 @@
       <section id="section-meters" class="section">
         <div class="section-header"><h2>My Smart Meters</h2><p>All connected meters and their real-time status</p></div>
         <div class="meters-grid" id="meters-grid"></div>
+      </section>
+
+      <!-- BILLING SECTION -->
+      <section id="section-billing" class="section">
+        <div class="section-header">
+          <h2>Billing &amp; Payments</h2>
+          <p>Live billing data from <strong>billing-service</strong> · tariff rates, usage costs, payment history and AI-powered forecast</p>
+        </div>
+
+        <!-- Billing Sub-Tabs -->
+        <div class="billing-tabs">
+          <button class="billing-tab active" id="btab-overview"  onclick="switchBillingTab('overview')">📊 Overview</button>
+          <button class="billing-tab" id="btab-bills"    onclick="switchBillingTab('bills')">🧾 Past Bills</button>
+          <button class="billing-tab" id="btab-usage"    onclick="switchBillingTab('usage')">💧 Usage Breakdown</button>
+          <button class="billing-tab" id="btab-forecast" onclick="switchBillingTab('forecast')">📈 Forecast</button>
+        </div>
+
+        <!-- OVERVIEW PANEL -->
+        <div class="billing-panel active" id="bpanel-overview">
+          <div class="billing-kpi-row" id="billing-kpi-row">
+            <div class="bill-kpi-card unpaid">
+              <div class="bill-kpi-icon">💳</div>
+              <div class="bill-kpi-data">
+                <span class="bill-kpi-label">Total Unpaid</span>
+                <span class="bill-kpi-value" id="bkpi-unpaid">—</span>
+                <span class="bill-kpi-sub" id="bkpi-unpaid-count">Loading…</span>
+              </div>
+            </div>
+            <div class="bill-kpi-card last">
+              <div class="bill-kpi-icon">🧾</div>
+              <div class="bill-kpi-data">
+                <span class="bill-kpi-label">Last Bill</span>
+                <span class="bill-kpi-value" id="bkpi-last">—</span>
+                <span class="bill-kpi-sub" id="bkpi-last-month">Loading…</span>
+              </div>
+            </div>
+            <div class="bill-kpi-card estimate">
+              <div class="bill-kpi-icon">⚡</div>
+              <div class="bill-kpi-data">
+                <span class="bill-kpi-label">This Month Est.</span>
+                <span class="bill-kpi-value" id="bkpi-estimate">—</span>
+                <span class="bill-kpi-sub" id="bkpi-estimate-detail">Calculating…</span>
+              </div>
+            </div>
+            <div class="bill-kpi-card duedate">
+              <div class="bill-kpi-icon">📅</div>
+              <div class="bill-kpi-data">
+                <span class="bill-kpi-label">Next Due Date</span>
+                <span class="bill-kpi-value" id="bkpi-due">—</span>
+                <span class="bill-kpi-sub" id="bkpi-due-bill">Loading…</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tariff Rates Card -->
+          <div class="chart-card" style="margin-top:20px">
+            <div class="chart-header">
+              <h3>Current Tariff Rates</h3>
+              <span class="live-chip" style="font-size:10px">from billing-service</span>
+            </div>
+            <div class="tariff-grid" id="tariff-grid">
+              <div style="color:var(--text-muted);padding:12px;font-size:13px">Loading tariff rates…</div>
+            </div>
+          </div>
+
+          <!-- Payment History -->
+          <div class="chart-card" style="margin-top:20px">
+            <div class="chart-header">
+              <h3>Recent Payment History</h3>
+              <span id="payments-count" class="crud-count">—</span>
+            </div>
+            <div class="readings-table-wrap">
+              <table class="readings-table">
+                <thead>
+                  <tr>
+                    <th>Payment ID</th><th>Bill Month</th><th>Amount</th><th>Method</th><th>Tx Ref</th><th>Paid At</th>
+                  </tr>
+                </thead>
+                <tbody id="payments-body">
+                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:20px">Loading payments…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAST BILLS PANEL -->
+        <div class="billing-panel" id="bpanel-bills">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>All Bills</h3>
+              <span id="bills-total-count" class="crud-count">—</span>
+            </div>
+            <div class="readings-table-wrap">
+              <table class="readings-table" id="bills-table">
+                <thead>
+                  <tr>
+                    <th>Bill #</th><th>Month</th><th>Water</th><th>Energy</th>
+                    <th>Fixed</th><th>Total</th><th>Due Date</th><th>Status</th><th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="bills-body">
+                  <tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:24px">Loading bills…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- USAGE BREAKDOWN PANEL -->
+        <div class="billing-panel" id="bpanel-usage">
+          <div class="billing-breakdown-grid">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3>Current Month Cost Breakdown</h3>
+                <span id="usage-month-label" class="live-chip">—</span>
+              </div>
+              <div id="usage-breakdown-bars"><div style="color:var(--text-muted);padding:20px;font-size:13px">Loading usage…</div></div>
+              <div class="usage-totals" id="usage-totals"></div>
+            </div>
+            <div class="chart-card">
+              <div class="chart-header"><h3>Cost Split</h3></div>
+              <canvas id="chart-cost-split" height="220"></canvas>
+            </div>
+          </div>
+          <div class="chart-card" style="margin-top:20px">
+            <div class="chart-header"><h3>Monthly Bill Trend (Last 6 Months)</h3></div>
+            <canvas id="chart-bill-trend" height="100"></canvas>
+          </div>
+        </div>
+
+        <!-- FORECAST PANEL -->
+        <div class="billing-panel" id="bpanel-forecast">
+          <div class="forecast-header-row">
+            <div class="chart-card forecast-info-card" id="forecast-info-card">
+              <div class="forecast-icon">🔮</div>
+              <div class="forecast-text">
+                <div class="forecast-title">Next Month Forecast</div>
+                <div class="forecast-amount" id="forecast-amount">—</div>
+                <div class="forecast-detail" id="forecast-detail">Calculating from your usage history…</div>
+              </div>
+            </div>
+            <div class="chart-card forecast-stat" id="forecast-stat-water">
+              <span class="forecast-stat-label">💧 Water Forecast</span>
+              <span class="forecast-stat-val" id="fcast-water">—</span>
+            </div>
+            <div class="chart-card forecast-stat" id="forecast-stat-energy">
+              <span class="forecast-stat-label">⚡ Energy Forecast</span>
+              <span class="forecast-stat-val" id="fcast-energy">—</span>
+            </div>
+          </div>
+          <div class="chart-card" style="margin-top:20px">
+            <div class="chart-header">
+              <h3>3-Month Bill Projection</h3>
+              <span style="font-size:11px;color:var(--text-muted)">Based on usage trend · tariff from billing-service</span>
+            </div>
+            <canvas id="chart-forecast" height="100"></canvas>
+          </div>
+          <div class="chart-card" style="margin-top:16px">
+            <div class="chart-header"><h3>Forecast Assumptions</h3></div>
+            <div class="assumptions-grid" id="assumptions-grid"></div>
+          </div>
+        </div>
+
       </section>
 
     </div>
