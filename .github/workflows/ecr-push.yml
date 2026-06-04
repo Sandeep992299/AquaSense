@@ -47,7 +47,7 @@ jobs:
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/user-service/Dockerfile \
-            services/user-service/
+            services/
           docker push $IMAGE:$TAG
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
@@ -92,7 +92,7 @@ jobs:
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/billing-service/Dockerfile \
-            services/billing-service/
+            services/
           docker push $IMAGE:$TAG
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
@@ -137,7 +137,7 @@ jobs:
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/usage-service/Dockerfile \
-            services/usage-service/
+            services/
           docker push $IMAGE:$TAG
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
@@ -182,7 +182,7 @@ jobs:
             -t $IMAGE:$TAG \
             -t $IMAGE:latest \
             -f services/alert-service/Dockerfile \
-            services/alert-service/
+            services/
           docker push $IMAGE:$TAG
           docker push $IMAGE:latest
           echo "✅ Pushed $IMAGE:$TAG"
