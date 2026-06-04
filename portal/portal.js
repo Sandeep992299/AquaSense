@@ -315,9 +315,9 @@ function showSection(name) {
   // Initialize section-specific content
   if (name === 'live')      initLiveSection();
   if (name === 'crud')      initCrudSection();
-  if (name === 'water')     renderDetailCharts();
-  if (name === 'energy')    renderEnergyCharts();
-  if (name === 'alerts')    loadFullAlerts();
+  if (name === 'water')     initWaterSection();
+  if (name === 'energy')    initEnergySection();
+  if (name === 'alerts')    renderFullAlerts(currentFilter);
   if (name === 'reports')   renderReports();
   if (name === 'meters')    loadAndRenderMeters();
 }
