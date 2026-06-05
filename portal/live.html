@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Telemetry – AquaSense Portal</title>
+  <meta name="description" content="Real-time IoT sensor telemetry from AquaSense smart meters." />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
+  <link rel="stylesheet" href="shared.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+
+<div class="login-overlay" id="login-overlay">
+  <div class="login-modal">
+    <div class="login-brand">
+      <svg width="36" height="36" viewBox="0 0 28 28" fill="none"><path d="M14 2C14 2 5 10 5 16.5C5 21.2 9.03 25 14 25C18.97 25 23 21.2 23 16.5C23 10 14 2 14 2Z" fill="url(#wgl)"/><defs><linearGradient id="wgl" x1="5" y1="2" x2="23" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs></svg>
+      <div><div class="login-brand-name">AquaSense</div><div class="login-brand-sub">Smart Utilities Portal</div></div>
+    </div>
+    <h2 class="login-title" id="login-title">Welcome back</h2>
+    <p class="login-sub">Sign in to monitor your water &amp; energy</p>
+    <div class="login-error" id="login-error"></div>
+    <form id="login-form">
+      <div class="login-field"><label>Email</label><input type="email" id="login-email" placeholder="rajesh@aquasense.in" required /></div>
+      <div class="login-field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" required /></div>
+      <button type="submit" id="btn-login" class="btn-login">Sign In</button>
+    </form>
+    <div class="login-forgot"><a href="#" id="btn-forgot-password">Forgot password?</a></div>
+    <div class="login-divider" id="login-divider"><span>or</span></div>
+    <button id="btn-demo" class="btn-demo">🎭 Continue in Demo Mode</button>
+    <div class="login-footer" id="login-footer-signin">Don't have an account? <a href="#" id="link-show-signup">Sign Up</a></div>
+    <div id="new-pw-panel" style="display:none"><div class="login-field"><label>New Password</label><input type="password" id="new-pw-input" /></div><div class="login-field"><label>Confirm Password</label><input type="password" id="new-pw-confirm" /></div><button id="btn-set-password" class="btn-login">Set Password &amp; Sign In</button></div>
+    <div id="signup-panel" style="display:none;margin-top:12px"><form id="signup-form"><div class="login-field"><label>Full Name</label><input type="text" id="signup-name" required /></div><div class="login-field"><label>Email</label><input type="email" id="signup-email" required /></div><div class="login-field"><label>Password</label><input type="password" id="signup-password" required /></div><div class="login-field"><label>Meter ID (Optional)</label><input type="text" id="signup-meter" /></div><button type="submit" id="btn-signup-submit" class="btn-login">Create Account</button></form><div class="login-footer" style="margin-top:12px">Already have an account? <a href="#" id="link-show-login">Sign In</a></div></div>
+    <div id="verify-panel" style="display:none;margin-top:12px"><div class="login-field"><label>Verification Code</label><input type="text" id="verify-code" placeholder="123456" /></div><button id="btn-verify-submit" class="btn-login">Verify &amp; Sign In</button></div>
+    <div id="forgot-pw-panel" style="display:none;margin-top:12px"><div class="login-field"><label>Email</label><input type="email" id="forgot-email" /></div><div style="display:flex;gap:8px"><button id="btn-send-code" class="btn-login" style="flex:1">Send Code</button><button onclick="toggleForgotPw(false)" class="btn-demo" style="flex:0.5">Cancel</button></div><div id="forgot-confirm-panel" style="display:none;margin-top:12px"><div class="login-field"><label>Code</label><input type="text" id="forgot-code" /></div><div class="login-field"><label>New Password</label><input type="password" id="forgot-new-pw" /></div><button id="btn-confirm-reset" class="btn-login" style="width:100%">Reset Password</button></div></div>
+  </div>
+</div>
+
+<div id="demo-notice" class="demo-notice" style="display:none"></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <div class="breadcrumb">📡 Live Telemetry</div>
+      </div>
+      <div class="topbar-right">
+        <div class="aws-status-pill"><span class="pulse-dot"></span><span>AWS Connected</span></div>
+        <div class="date-display" id="live-date"></div>
+        <span class="live-chip"><span class="pulse-dot small"></span>LIVE · 5s refresh</span>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="section-header">
+        <h2>📡 Live IoT Telemetry</h2>
+        <p>Real-time readings streamed from your smart meters via AWS IoT Core → RDS · auto-refreshes every 5 seconds</p>
+      </div>
+
+      <!-- Quick stats row -->
+      <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+        <div class="card" style="flex:1;min-width:140px;padding:14px 18px">
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">Readings Loaded</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent-blue)" id="live-stat-readings">—</div>
+        </div>
+        <div class="card" style="flex:1;min-width:140px;padding:14px 18px">
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">Anomalies</div>
+          <div style="font-size:22px;font-weight:800;color:var(--danger)" id="live-stat-anomalies">—</div>
+        </div>
+        <div class="card" style="flex:1;min-width:140px;padding:14px 18px">
+          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">Online Meters</div>
+          <div style="font-size:22px;font-weight:800;color:var(--accent-green)" id="live-stat-online">—</div>
+        </div>
+      </div>
+
+      <!-- Meter Status Cards -->
+      <div class="live-meter-grid" id="live-meter-cards"></div>
+
+      <!-- Real-time Chart -->
+      <div class="chart-card" style="margin-top:20px">
+        <div class="chart-header">
+          <h3>Real-Time Flow Chart</h3>
+          <div style="display:flex;align-items:center;gap:12px">
+            <select id="live-chart-meter" class="chip-select" onchange="switchLiveChartMeter(this.value)">
+              <option value="SMT-W-0041">SMT-W-0041 (Kitchen)</option>
+              <option value="SMT-W-0042">SMT-W-0042 (Garden)</option>
+              <option value="SMT-E-0087">SMT-E-0087 (Energy)</option>
+            </select>
+            <span class="live-chip"><span class="pulse-dot small"></span>LIVE</span>
+          </div>
+        </div>
+        <canvas id="chart-live-flow" height="100"></canvas>
+      </div>
+
+      <!-- Latest Readings Table -->
+      <div class="chart-card" style="margin-top:20px">
+        <div class="chart-header">
+          <h3>Latest Readings — All Meters</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="chip active" onclick="filterLiveReadings('all',this)" id="live-filter-all">All</button>
+            <button class="chip" onclick="filterLiveReadings('water',this)" id="live-filter-water">Water</button>
+            <button class="chip" onclick="filterLiveReadings('energy',this)" id="live-filter-energy">Energy</button>
+            <button class="chip" onclick="refreshLiveReadings()" style="background:rgba(56,189,248,0.15);color:#38bdf8;border-color:rgba(56,189,248,0.3)">⟳ Refresh</button>
+          </div>
+        </div>
+        <div class="readings-table-wrap">
+          <table class="readings-table">
+            <thead><tr><th>Reading ID</th><th>Meter ID</th><th>Type</th><th>Value</th><th>Pressure</th><th>Quality</th><th>Recorded At</th></tr></thead>
+            <tbody id="live-readings-body"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Loading readings…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="shared.js"></script>
+<script src="sidebar.js"></script>
+<script src="live.js"></script>
+<script>
+  // Wire live page via bootstrapPage
+  bootstrapPage('live', initLiveSection);
+</script>
+</body>
+</html>

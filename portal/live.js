@@ -16,6 +16,7 @@ let _liveRefreshInterval = null;
 async function initLiveSection() {
   if (_liveInited) return;
   _liveInited = true;
+  if (typeof renderSidebar === 'function') renderSidebar('live');
 
   // Initial data load
   await Promise.all([refreshLiveMeters(), refreshLiveReadings()]);

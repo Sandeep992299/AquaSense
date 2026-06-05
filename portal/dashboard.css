@@ -1,0 +1,83 @@
+/* =============================================
+   AquaSense – Dashboard Page CSS
+   ============================================= */
+
+/* ── KPI Cards ────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+  position: relative; overflow: hidden;
+  transition: var(--transition);
+}
+.kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.12); }
+.kpi-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.kpi-card.water-card::before    { background: linear-gradient(90deg,#38bdf8,#0ea5e9); }
+.kpi-card.energy-card::before   { background: linear-gradient(90deg,#fbbf24,#f59e0b); }
+.kpi-card.pressure-card::before { background: linear-gradient(90deg,#a78bfa,#7c3aed); }
+.kpi-card.cost-card::before     { background: linear-gradient(90deg,#34d399,#059669); }
+
+.kpi-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.water-card .kpi-icon    { background: rgba(56,189,248,0.12);  color: var(--accent-blue); }
+.energy-card .kpi-icon   { background: rgba(251,191,36,0.12);  color: var(--accent-yellow); }
+.pressure-card .kpi-icon { background: rgba(167,139,250,0.12); color: var(--accent-purple); }
+.cost-card .kpi-icon     { background: rgba(52,211,153,0.12);  color: var(--accent-green); }
+
+.kpi-data { flex: 1; }
+.kpi-label  { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 4px; }
+.kpi-value  { font-size: 22px; font-weight: 800; color: var(--text-primary); display: block; line-height: 1; margin-bottom: 4px; }
+.kpi-value small { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.kpi-change { font-size: 11px; font-weight: 600; display: block; }
+.kpi-change.positive { color: var(--accent-green); }
+.kpi-change.negative { color: var(--danger); }
+.kpi-change.neutral  { color: var(--text-muted); }
+
+.kpi-sparkline { width: 72px; height: 36px; flex-shrink: 0; }
+
+/* ── Charts Row ───────────────────────────────── */
+.charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+
+/* ── Bottom Row ───────────────────────────────── */
+.bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 900px) { .bottom-row { grid-template-columns: 1fr; } }
+
+.live-feed-card, .recent-alerts-card {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+.see-all { font-size: 11px; color: var(--accent-blue); font-weight: 600; }
+
+/* ── Live Feed ────────────────────────────────── */
+.feed-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px; color: var(--text-secondary);
+}
+.feed-dot  { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.feed-meta { margin-left: auto; font-size: 10px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }

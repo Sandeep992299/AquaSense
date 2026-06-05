@@ -1,0 +1,94 @@
+/* =============================================
+   AquaSense – Energy Monitor Page CSS
+   ============================================= */
+
+/* ── Energy KPI Cards ──────────────────────── */
+.energy-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.energy-kpi-card {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+  position: relative; overflow: hidden;
+  transition: var(--transition);
+}
+.energy-kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.12); }
+.energy-kpi-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+.energy-kpi-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: rgba(251,191,36,0.12); color: var(--accent-yellow);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.energy-kpi-data { flex: 1; }
+.energy-kpi-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing:.06em; display:block; margin-bottom:4px; }
+.energy-kpi-value { font-size: 22px; font-weight: 800; color: var(--text-primary); display:block; line-height:1; margin-bottom:4px; }
+.energy-kpi-value small { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.energy-kpi-change { font-size: 11px; font-weight: 600; display:block; }
+.energy-kpi-change.positive { color: var(--accent-green); }
+.energy-kpi-change.negative { color: var(--danger); }
+.energy-kpi-change.neutral  { color: var(--text-muted); }
+.energy-kpi-sparkline { width: 72px; height: 36px; flex-shrink: 0; }
+
+/* ── Trend Chart Section ──────────────────── */
+.energy-charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) { .energy-charts-row { grid-template-columns: 1fr; } }
+
+/* ── Appliance Breakdown Table ─────────────── */
+.appliance-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.appliance-table th {
+  text-align: left; padding: 10px 14px;
+  color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing:.04em;
+  border-bottom: 1px solid var(--glass-border);
+}
+.appliance-table td {
+  padding: 11px 14px; border-bottom: 1px solid rgba(255,255,255,0.03);
+  color: var(--text-secondary);
+}
+.appliance-table tr:hover td { background: rgba(255,255,255,0.02); }
+.usage-bar-cell { width: 140px; }
+.usage-bar-wrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.usage-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg,#fbbf24,#f59e0b); transition: width .8s ease; }
+
+/* ── Tips Grid ────────────────────────────── */
+.tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+.tip-card {
+  background: var(--bg2); border: 1px solid var(--glass-border);
+  border-radius: var(--radius); padding: 18px;
+  display: flex; align-items: flex-start; gap: 12px;
+  transition: var(--transition);
+}
+.tip-card:hover { border-color: rgba(251,191,36,0.3); transform: translateY(-2px); }
+.tip-icon { font-size: 24px; flex-shrink: 0; }
+.tip-title { font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+.tip-desc  { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.tip-saving { font-size: 11px; color: var(--accent-green); font-weight: 600; margin-top: 6px; }
+
+/* ── Bottom Row ───────────────────────────── */
+.energy-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+@media (max-width: 900px) { .energy-bottom-row { grid-template-columns: 1fr; } }

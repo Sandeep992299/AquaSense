@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Energy Monitor – AquaSense Portal</title>
+  <meta name="description" content="AquaSense real-time energy consumption monitor, appliance breakdown and savings tips." />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
+  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="energy.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY (shared markup) -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-modal">
+    <div class="login-brand">
+      <svg width="36" height="36" viewBox="0 0 28 28" fill="none">
+        <path d="M14 2C14 2 5 10 5 16.5C5 21.2 9.03 25 14 25C18.97 25 23 21.2 23 16.5C23 10 14 2 14 2Z" fill="url(#wge)"/>
+        <defs><linearGradient id="wge" x1="5" y1="2" x2="23" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient></defs>
+      </svg>
+      <div><div class="login-brand-name">AquaSense</div><div class="login-brand-sub">Smart Utilities Portal</div></div>
+    </div>
+    <h2 class="login-title" id="login-title">Welcome back</h2>
+    <p class="login-sub">Sign in to monitor your water &amp; energy</p>
+    <div class="login-error" id="login-error"></div>
+    <form id="login-form">
+      <div class="login-field"><label>Email</label><input type="email" id="login-email" placeholder="rajesh@aquasense.in" required /></div>
+      <div class="login-field"><label>Password</label><input type="password" id="login-password" placeholder="••••••••" required /></div>
+      <button type="submit" id="btn-login" class="btn-login">Sign In</button>
+    </form>
+    <div class="login-forgot"><a href="#" id="btn-forgot-password">Forgot password?</a></div>
+    <div class="login-divider" id="login-divider"><span>or</span></div>
+    <button id="btn-demo" class="btn-demo">🎭 Continue in Demo Mode</button>
+    <div class="login-footer" id="login-footer-signin">Don't have an account? <a href="#" id="link-show-signup">Sign Up</a></div>
+    <div id="new-pw-panel" style="display:none">
+      <div class="login-field"><label>New Password</label><input type="password" id="new-pw-input" /></div>
+      <div class="login-field"><label>Confirm Password</label><input type="password" id="new-pw-confirm" /></div>
+      <button id="btn-set-password" class="btn-login">Set Password &amp; Sign In</button>
+    </div>
+    <div id="signup-panel" style="display:none;margin-top:12px">
+      <form id="signup-form">
+        <div class="login-field"><label>Full Name</label><input type="text" id="signup-name" required /></div>
+        <div class="login-field"><label>Email</label><input type="email" id="signup-email" required /></div>
+        <div class="login-field"><label>Password</label><input type="password" id="signup-password" required /></div>
+        <div class="login-field"><label>Meter ID (Optional)</label><input type="text" id="signup-meter" /></div>
+        <button type="submit" id="btn-signup-submit" class="btn-login">Create Account</button>
+      </form>
+      <div class="login-footer" style="margin-top:12px">Already have an account? <a href="#" id="link-show-login">Sign In</a></div>
+    </div>
+    <div id="verify-panel" style="display:none;margin-top:12px">
+      <div class="login-field"><label>Verification Code</label><input type="text" id="verify-code" placeholder="123456" /></div>
+      <button id="btn-verify-submit" class="btn-login">Verify &amp; Sign In</button>
+    </div>
+    <div id="forgot-pw-panel" style="display:none;margin-top:12px">
+      <div class="login-field"><label>Email</label><input type="email" id="forgot-email" /></div>
+      <div style="display:flex;gap:8px"><button id="btn-send-code" class="btn-login" style="flex:1">Send Code</button><button onclick="toggleForgotPw(false)" class="btn-demo" style="flex:0.5">Cancel</button></div>
+      <div id="forgot-confirm-panel" style="display:none;margin-top:12px">
+        <div class="login-field"><label>Code</label><input type="text" id="forgot-code" /></div>
+        <div class="login-field"><label>New Password</label><input type="password" id="forgot-new-pw" /></div>
+        <button id="btn-confirm-reset" class="btn-login" style="width:100%">Reset Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="demo-notice" class="demo-notice" style="display:none"></div>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside><!-- filled by sidebar.js -->
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="breadcrumb">⚡ Energy Monitor</div>
+      </div>
+      <div class="topbar-right">
+        <div class="aws-status-pill"><span class="pulse-dot"></span><span>AWS Connected</span></div>
+        <div class="date-display" id="live-date"></div>
+        <button class="icon-btn" title="Notifications"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-dot"></span></button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="section-header">
+        <h2>⚡ Energy Monitor</h2>
+        <p>Real-time energy consumption from SMT-E-0087 · CEB tariff LKR 8.50/kWh · Grid + Solar mix</p>
+      </div>
+
+      <!-- KPI Cards -->
+      <div class="energy-kpi-grid">
+        <div class="energy-kpi-card">
+          <div class="energy-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+          <div class="energy-kpi-data">
+            <span class="energy-kpi-label">Today's Usage</span>
+            <span class="energy-kpi-value" id="kpi-energy-today">14.2 <small>kWh</small></span>
+            <span class="energy-kpi-change positive">↓ 8% vs avg</span>
+          </div>
+          <div class="energy-kpi-sparkline"><canvas id="spark-today"></canvas></div>
+        </div>
+        <div class="energy-kpi-card">
+          <div class="energy-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><polyline points="8 21 12 17 16 21"/></svg></div>
+          <div class="energy-kpi-data">
+            <span class="energy-kpi-label">Monthly Est.</span>
+            <span class="energy-kpi-value" id="kpi-energy-monthly">426 <small>kWh</small></span>
+            <span class="energy-kpi-change positive">↓ 3% vs last month</span>
+          </div>
+          <div class="energy-kpi-sparkline"><canvas id="spark-monthly"></canvas></div>
+        </div>
+        <div class="energy-kpi-card">
+          <div class="energy-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="energy-kpi-data">
+            <span class="energy-kpi-label">Last Reading</span>
+            <span class="energy-kpi-value" id="kpi-energy-current">13.6 <small>kWh</small></span>
+            <span class="energy-kpi-change neutral">Normal draw</span>
+          </div>
+          <div class="energy-kpi-sparkline"><canvas id="spark-current"></canvas></div>
+        </div>
+        <div class="energy-kpi-card">
+          <div class="energy-kpi-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="energy-kpi-data">
+            <span class="energy-kpi-label">Monthly Cost</span>
+            <span class="energy-kpi-value" id="kpi-energy-cost">LKR 3,621</span>
+            <span class="energy-kpi-change positive">↓ LKR 240 vs last</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="energy-charts-row">
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Today's Hourly Consumption</h3>
+            <span class="live-chip"><span class="pulse-dot small"></span>SMT-E-0087</span>
+          </div>
+          <canvas id="chart-energy-hourly" height="110"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><h3>Energy Source Mix</h3></div>
+          <canvas id="chart-energy-mix" height="200"></canvas>
+        </div>
+      </div>
+
+      <!-- 30-Day Trend -->
+      <div class="chart-card" style="margin-bottom:24px">
+        <div class="chart-header">
+          <h3>30-Day Consumption Trend</h3>
+          <span style="font-size:11px;color:var(--text-muted)">Daily kWh · target line: 12 kWh/day</span>
+        </div>
+        <canvas id="chart-energy-30d" height="100"></canvas>
+      </div>
+
+      <!-- Appliance Breakdown -->
+      <div class="chart-card" style="margin-bottom:24px">
+        <div class="chart-header"><h3>Appliance Breakdown (estimated)</h3><span style="font-size:11px;color:var(--text-muted)">Based on rated wattage × usage patterns</span></div>
+        <div class="readings-table-wrap">
+          <table class="appliance-table">
+            <thead><tr><th>Appliance</th><th>Today</th><th>Usage Share</th><th>%</th><th>Cost (today)</th></tr></thead>
+            <tbody id="appliance-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Savings Tips -->
+      <div class="chart-card">
+        <div class="chart-header"><h3>💡 Energy Saving Recommendations</h3></div>
+        <div class="tips-grid" id="tips-grid"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="shared.js"></script>
+<script src="sidebar.js"></script>
+<script src="energy.js"></script>
+</body>
+</html>

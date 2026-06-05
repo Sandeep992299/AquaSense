@@ -11,6 +11,7 @@ let _crudReadingsPage = 1;
 
 // ── Entry Point ───────────────────────────────────────────────
 function initCrudSection() {
+  if (typeof renderSidebar === 'function') renderSidebar('crud');
   switchCrudTab(_crudTab);
   renderCrudSummaryChart();
 }
