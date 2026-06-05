@@ -1,0 +1,253 @@
+/* =============================================
+   AquaSense – Billing & Payments Section CSS
+   Dedicated stylesheet for billing.html section
+   ============================================= */
+
+/* ---- SUB-TAB NAV ---- */
+.billing-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  background: var(--bg2);
+  padding: 6px;
+  border-radius: var(--radius);
+  border: 1px solid var(--glass-border);
+  width: fit-content;
+  flex-wrap: wrap;
+}
+.billing-tab {
+  padding: 9px 20px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+.billing-tab:hover  { color: var(--text-primary); background: var(--glass); }
+.billing-tab.active {
+  background: rgba(52, 211, 153, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+
+.billing-panel        { display: none; }
+.billing-panel.active { display: block; }
+
+/* ---- KPI ROW ---- */
+.billing-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.bill-kpi-card {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  transition: var(--transition);
+}
+.bill-kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.bill-kpi-card.unpaid::before   { background: linear-gradient(90deg, #f87171, #ef4444); }
+.bill-kpi-card.last::before     { background: linear-gradient(90deg, #38bdf8, #06b6d4); }
+.bill-kpi-card.estimate::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.bill-kpi-card.duedate::before  { background: linear-gradient(90deg, #a78bfa, #8b5cf6); }
+.bill-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.bill-kpi-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.bill-kpi-data    { flex: 1; min-width: 0; }
+.bill-kpi-label   { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; }
+.bill-kpi-value   { display: block; font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1.1; margin-bottom: 4px; }
+.bill-kpi-sub     { display: block; font-size: 11px; color: var(--text-muted); }
+
+/* ---- BILL STATUS BADGES ---- */
+.bill-status-paid {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: 10px; font-weight: 700;
+  background: rgba(52, 211, 153, 0.12); color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.25);
+}
+.bill-status-unpaid {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: 10px; font-weight: 700;
+  background: rgba(251, 191, 36, 0.12); color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.25);
+}
+.bill-status-overdue {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: 10px; font-weight: 700;
+  background: rgba(239, 68, 68, 0.12); color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+/* ---- PAY BUTTON ---- */
+.btn-pay {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.3);
+}
+.btn-pay:hover    { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(52, 211, 153, 0.45); }
+.btn-pay:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ---- SIDEBAR UNPAID BADGE ---- */
+.bill-badge {
+  margin-left: auto;
+  background: #fbbf24;
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ---- TARIFF RATES GRID ---- */
+.tariff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.tariff-card {
+  background: var(--bg3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--transition);
+}
+.tariff-card:hover { border-color: rgba(255,255,255,0.14); }
+.tariff-type  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.tariff-rate  { font-size: 24px; font-weight: 800; color: var(--text-primary); }
+.tariff-unit  { font-size: 11px; color: var(--text-secondary); }
+.tariff-since { font-size: 10px; color: var(--text-muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+
+/* ---- USAGE BREAKDOWN PANEL ---- */
+.billing-breakdown-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+.usage-cost-bar-wrap { margin-bottom: 18px; }
+.usage-cost-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 7px;
+}
+.usage-cost-name   { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.usage-cost-amt    { font-size: 15px; font-weight: 800; color: var(--text-primary); }
+.usage-cost-track  { height: 10px; background: rgba(255,255,255,0.06); border-radius: 5px; overflow: hidden; }
+.usage-cost-fill   { height: 100%; border-radius: 5px; transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1); }
+.usage-cost-detail { font-size: 11px; color: var(--text-muted); margin-top: 5px; font-family: 'JetBrains Mono', monospace; }
+
+.usage-totals {
+  display: flex;
+  gap: 24px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--glass-border);
+  flex-wrap: wrap;
+}
+.usage-total-item  { display: flex; flex-direction: column; gap: 3px; }
+.usage-total-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.usage-total-val   { font-size: 20px; font-weight: 800; color: var(--text-primary); }
+
+/* ---- FORECAST PANEL ---- */
+.forecast-header-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.forecast-info-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.forecast-icon   { font-size: 44px; line-height: 1; flex-shrink: 0; }
+.forecast-text   { flex: 1; }
+.forecast-title  { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.forecast-amount { font-size: 34px; font-weight: 800; color: #34d399; line-height: 1; margin-bottom: 6px; }
+.forecast-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+.forecast-stat {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+.forecast-stat-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.forecast-stat-val   { font-size: 28px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+
+/* ---- ASSUMPTIONS GRID ---- */
+.assumptions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.assumption-card {
+  background: var(--bg3);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: var(--transition);
+}
+.assumption-card:hover { border-color: rgba(255,255,255,0.14); }
+.assumption-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.assumption-val   { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.assumption-note  { font-size: 10px; color: var(--text-muted); line-height: 1.4; }
+
+/* ---- RESPONSIVE OVERRIDES (billing-only) ---- */
+@media (max-width: 1200px) {
+  .billing-kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .forecast-header-row { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 900px) {
+  .billing-breakdown-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .billing-kpi-row { grid-template-columns: 1fr; }
+  .forecast-header-row { grid-template-columns: 1fr; }
+  .billing-tabs { width: 100%; }
+  .billing-tab  { flex: 1; text-align: center; }
+}

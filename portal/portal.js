@@ -376,40 +376,69 @@ function makeDoughnut(id, labels, data, colors) {
 }
 
 // ===== MOCK DATA =====
+// Values aligned with seed.sql: LKR tariff, Rajesh Kumar residential readings
 const MOCK = {
-  waterToday:284, energyToday:18.4, pressure:2.4, bill:1842,
+  // Today's readings: avg of SMT-W-0041 (Kitchen) + SMT-W-0042 (Garden)
+  waterToday:  274,   // ~270 L/day combined (Kitchen 180 + Garden 90)
+  energyToday: 14.2,  // ~14 kWh/day (SMT-E-0087)
+  pressure:    2.4,   // typical bar reading
+  bill:        4330,  // May 2026 bill total (LKR)
   alerts:[
-    { severity:'critical', title:'Leakage Detected – Zone C', description:'Flow sensor abnormal delta.', created_at:new Date(Date.now()-7200000).toISOString(), status:'active' },
-    { severity:'warning',  title:'High Water Consumption',   description:'Daily usage exceeded 120% of baseline.', created_at:new Date(Date.now()-86400000).toISOString(), status:'active' },
-    { severity:'info',     title:'Monthly Bill Generated',   description:'Your bill has been generated.', created_at:new Date(Date.now()-259200000).toISOString(), status:'active' },
+    { severity:'critical', title:'Leakage Detected – Kitchen (SMT-W-0041)',     description:'Flow sensor registered 0.4 L/hr at 02:45 AM. Possible pipe leak.', created_at:new Date(Date.now()-7200000).toISOString(), status:'active' },
+    { severity:'warning',  title:'High Water Consumption – Garden Zone',        description:'SMT-W-0042 exceeded daily baseline by 140%. Current: 186 L.', created_at:new Date(Date.now()-64800000).toISOString(), status:'active' },
+    { severity:'info',     title:'Monthly Bill Generated – May 2026',           description:'Your bill for May 2026 has been generated: LKR 4,330.00. Due: 15 Jun 2026.', created_at:new Date(Date.now()-345600000).toISOString(), status:'active' },
   ],
+  // 30-day water readings per meter (L per day) – realistic Kitchen+Garden data
+  waterDays30: {
+    'SMT-W-0041': [168,182,195,171,188,176,163,197,184,172,191,179,168,185,193,176,168,189,174,182,196,170,183,175,188,165,192,178,186,177],
+    'SMT-W-0042': [88,96,92,84,101,89,78,95,93,87,103,91,82,97,89,94,86,99,88,92,104,87,95,90,97,83,102,91,89,94],
+  },
+  // 30-day energy readings (kWh per day) – SMT-E-0087
+  energyDays30: [13.2,14.8,12.9,15.1,13.7,14.4,12.8,15.6,13.9,14.2,13.5,15.0,13.1,14.7,12.6,15.3,13.8,14.5,13.0,15.2,13.4,14.9,12.7,15.4,13.6,14.3,12.5,15.5,13.3,14.1],
+  // 24-hour pressure trace (bar)
+  pressureHours: [2.3,2.2,2.1,2.0,2.1,2.2,2.3,2.4,2.5,2.6,2.5,2.4,2.4,2.5,2.6,2.5,2.4,2.3,2.2,2.3,2.4,2.3,2.3,2.4],
 };
 const ALERT_ICON = { critical:'🚨', warning:'⚠️', info:'📋' };
 
 // ===== DASHBOARD DATA =====
 async function loadDashboardData() {
-  if (AUTH.demo) return;
   const summary = await apiSafe('usage', `/api/usage/summary/${AUTH.userId}`);
-  if (summary?.summary) {
-    const s = summary.summary;
-    animCount('kpi-water',    0, parseFloat(s.today_water_l)   || MOCK.waterToday,  'L',   1200);
-    animCount('kpi-energy',   0, parseFloat(s.today_energy_kwh) || MOCK.energyToday, 'kWh', 1200, 1);
-    animCount('kpi-pressure', 2.0, MOCK.pressure, 'bar', 800, 1);
-  } else {
-    animCount('kpi-water',    0, MOCK.waterToday,  'L',   1200);
-    animCount('kpi-energy',   0, MOCK.energyToday, 'kWh', 1200, 1);
-    animCount('kpi-pressure', 2.0, MOCK.pressure,  'bar', 800,  1);
-  }
+  const s = summary?.summary;
+
+  // --- Water KPI ---
+  const todayWater = s?.today_water_l ? parseFloat(s.today_water_l) : MOCK.waterToday;
+  animCount('kpi-water', 0, todayWater, 'L', 1200);
+  makeSparkline('spark-water', (() => {
+    // Build 7-day spark from seeded daily totals
+    const d30 = (MOCK.waterDays30['SMT-W-0041'] || []).map((v,i) => v + (MOCK.waterDays30['SMT-W-0042']?.[i] || 0));
+    return d30.slice(-7);
+  })(), '#38bdf8');
+
+  // --- Energy KPI ---
+  const todayEnergy = s?.today_energy_kwh ? parseFloat(s.today_energy_kwh) : MOCK.energyToday;
+  animCount('kpi-energy', 0, todayEnergy, 'kWh', 1200, 1);
+  makeSparkline('spark-energy', MOCK.energyDays30.slice(-7), '#fbbf24');
+
+  // --- Pressure KPI ---
+  const pressure = s?.latest_pressure ?? MOCK.pressure;
+  animCount('kpi-pressure', 2.0, parseFloat(pressure), 'bar', 800, 1);
+  makeSparkline('spark-pressure', MOCK.pressureHours.slice(-7).map(v => v + (Math.random()-0.5)*0.1), '#a78bfa');
+
+  // --- Bill KPI ---
   const billsData = await apiSafe('billing', `/api/bills/user/${AUTH.userId}`);
-  const el = $('kpi-bill');
-  if (billsData?.bills?.length && el) {
-    el.innerHTML = `₹ ${parseFloat(billsData.bills[0].total).toLocaleString('en-IN')}`;
-  } else if (el) {
-    el.innerHTML = `₹ ${MOCK.bill.toLocaleString('en-IN')}`;
-  }
+  const latestBill = billsData?.bills?.[0];
+  const billTotal  = latestBill ? parseFloat(latestBill.total) : MOCK.bill;
+  const kpiBill = $('kpi-bill');
+  if (kpiBill) kpiBill.innerHTML = `LKR ${billTotal.toLocaleString('en-IN', {maximumFractionDigits:0})}`;
+  makeSparkline('spark-bill',
+    (billsData?.bills || []).slice(0, 7).map(b => parseFloat(b.total)).reverse() ||
+    MOCK.energyDays30.slice(-7).map(v => v * 310),
+    '#34d399');
+
+  // --- Alerts ---
   const alertsData = await apiSafe('alert', `/api/alerts/user/${AUTH.userId}`);
   const badge = $('alert-badge');
-  if (badge) badge.textContent = alertsData?.active ?? 0;
+  if (badge) badge.textContent = alertsData?.active ?? alertsData?.alerts?.filter(a => a.status === 'active').length ?? MOCK.alerts.length;
   renderDashboardAlerts(alertsData?.alerts || null);
 }
 
@@ -418,20 +447,16 @@ let _dashboardInited = false;
 function initDashboard() {
   if (_dashboardInited) return;
   _dashboardInited = true;
-  makeSparkline('spark-water',    generateDays(280,40), '#38bdf8');
-  makeSparkline('spark-energy',   generateDays(18, 4),  '#fbbf24');
-  makeSparkline('spark-pressure', generateDays(2.3,0.3),'#a78bfa');
-  makeSparkline('spark-bill',     generateDays(1800,200),'#34d399');
-  renderWaterChart(7); renderBreakdownChart(); startLiveFeed();
-  animCount('kpi-pressure', 2.0, MOCK.pressure, 'bar', 800, 1);
-  $('kpi-bill').innerHTML = `₹ ${MOCK.bill.toLocaleString('en-IN')}`;
+
+  // Kick off live feed and water/breakdown charts
+  renderWaterChart(7);
+  renderBreakdownChart();
+  startLiveFeed();
+
+  // Kick off data load (works for both demo and authenticated mode)
+  loadDashboardData();
   if (!AUTH.demo) {
-    loadDashboardData();
-    setInterval(loadDashboardData, 5000);
-  } else {
-    animCount('kpi-water',  0, MOCK.waterToday,  'L',   1200);
-    animCount('kpi-energy', 0, MOCK.energyToday, 'kWh', 1200, 1);
-    renderDashboardAlerts(null);
+    setInterval(loadDashboardData, 30000); // refresh every 30s
   }
 }
 
@@ -560,23 +585,89 @@ function initSectionCharts(name) {
   if (name === 'crud')    initCrudSection();
 }
 
-function initWaterSection() {
-  const months30 = Array.from({length:30},(_,i)=>{const d=new Date();d.setDate(d.getDate()-29+i);return d.getDate()+'/'+d.toLocaleString('en-IN',{month:'short'});});
-  makeLineChart('chart-water-detail', months30, [
-    { label:'Litres', data:generateDays(265,60,30), borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.12)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 }
+async function initWaterSection() {
+  // Fetch real 30-day readings from API; fall back to seed-derived MOCK data
+  const [kitchenRes, gardenRes] = await Promise.all([
+    apiSafe('usage', `/api/usage/readings/SMT-W-0041?limit=180`),  // ~6 readings/day × 30d
+    apiSafe('usage', `/api/usage/readings/SMT-W-0042?limit=120`),  // ~4 readings/day × 30d
   ]);
-  const hours = Array.from({length:24},(_,i)=>i+':00');
+
+  // Build 30 day labels
+  const months30 = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - 29 + i);
+    return d.getDate() + '/' + d.toLocaleString('en-IN', { month:'short' });
+  });
+
+  // Aggregate API readings by day if available, else use MOCK
+  function aggregateByDay(rows, days) {
+    if (!rows?.length) return null;
+    const buckets = {};
+    rows.forEach(r => {
+      const day = new Date(r.recorded_at).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+      buckets[day] = (buckets[day] || 0) + parseFloat(r.value);
+    });
+    // Build ordered array matching last N days
+    const d = new Date();
+    return Array.from({ length: days }, (_, i) => {
+      const t = new Date(d); t.setDate(d.getDate() - (days - 1) + i);
+      const key = t.getDate() + '/' + t.toLocaleString('en-IN', { month:'short' });
+      return buckets[key] ?? null;
+    });
+  }
+
+  const kitchenLive = aggregateByDay(kitchenRes?.data, 30);
+  const gardenLive  = aggregateByDay(gardenRes?.data,  30);
+  const kitchenData = kitchenLive || MOCK.waterDays30['SMT-W-0041'];
+  const gardenData  = gardenLive  || MOCK.waterDays30['SMT-W-0042'];
+
+  // 30-day detail chart
+  makeLineChart('chart-water-detail', months30, [
+    { label:'Kitchen (L)',  data: kitchenData, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.12)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 },
+    { label:'Garden (L)',   data: gardenData,  borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.07)',  fill:true, tension:0.4, borderWidth:1.5, pointRadius:0 },
+    { label:'Target (L)',   data: Array(30).fill(270), borderColor:'rgba(52,211,153,0.4)', borderDash:[5,5], borderWidth:1, pointRadius:0, fill:false },
+  ]);
+
+  // Pressure chart – 24-hour trace from MOCK (actual pressure comes via live telemetry)
+  const hours = Array.from({ length: 24 }, (_, i) => i + ':00');
   makeLineChart('chart-pressure', hours, [
-    { label:'Pressure (bar)', data:generateHourly(2.3,0.3), borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.1)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 }
+    { label:'Pressure (bar)', data: MOCK.pressureHours, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.1)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 }
   ]);
 }
-function initEnergySection() {
-  const hours = Array.from({length:24},(_,i)=>i+':00');
+
+async function initEnergySection() {
+  // Fetch real energy readings; fall back to seed-derived MOCK data
+  const energyRes = await apiSafe('usage', `/api/usage/readings/SMT-E-0087?limit=120`);
+
+  const hours = Array.from({ length: 24 }, (_, i) => i + ':00');
+
+  // Build hourly data (today's readings if available)
+  let hourlyData = MOCK.pressureHours.map(v => +(v * 1.5 + Math.random() * 0.5).toFixed(2)); // ~3-4 kWh/slot
+  if (energyRes?.data?.length) {
+    const today = new Date().toDateString();
+    const todayReadings = energyRes.data.filter(r => new Date(r.recorded_at).toDateString() === today);
+    if (todayReadings.length >= 3) {
+      // Map to 24 hour slots
+      hourlyData = Array(24).fill(null);
+      todayReadings.forEach(r => {
+        const h = new Date(r.recorded_at).getHours();
+        hourlyData[h] = parseFloat(r.value);
+      });
+      // Fill nulls with interpolated average
+      const avg = todayReadings.reduce((s, r) => s + parseFloat(r.value), 0) / todayReadings.length;
+      hourlyData = hourlyData.map(v => v ?? +(avg * (0.8 + Math.random() * 0.4)).toFixed(2));
+    }
+  }
+
   makeLineChart('chart-energy-hourly', hours, [
-    { label:'kWh', data:generateHourly(0.7,0.3), borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.1)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 }
+    { label:'kWh', data: hourlyData, borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.1)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 }
   ]);
-  makeDoughnut('chart-energy-mix', ['Grid','Solar','Off-Peak','Battery'], [55,22,15,8],
-    ['#fbbf24','#34d399','#38bdf8','#fb923c']);
+
+  // Energy mix: based on typical Sri Lanka residential split
+  makeDoughnut('chart-energy-mix',
+    ['Grid (CEB)', 'Solar', 'Off-Peak', 'Battery'],
+    [58, 20, 15, 7],
+    ['#fbbf24', '#34d399', '#38bdf8', '#fb923c']
+  );
 }
 
 // ===== REPORTS =====
