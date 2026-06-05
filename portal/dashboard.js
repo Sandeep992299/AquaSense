@@ -3,8 +3,6 @@
    Depends on: shared.js
    ============================================= */
 
-const ALERT_ICON = { critical:'🚨', warning:'⚠️', info:'📋' };
-
 // ── Dashboard Data ─────────────────────────────────────────────
 async function loadDashboardData() {
   // Water KPI
