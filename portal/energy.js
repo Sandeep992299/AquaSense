@@ -15,10 +15,10 @@ const APPLIANCES = [
 ];
 
 const ENERGY_TIPS = [
-  { icon:'❄️',  title:'Raise AC by 2°C',     desc:'Setting AC from 18°C to 20°C reduces compressor load by ~10%, saving energy with minimal comfort impact.', saving:'Save ~₹120/month' },
-  { icon:'⏰',  title:'Shift to Off-Peak Hours', desc:'Run high-draw appliances (washing machine, water heater) between 10 PM–6 AM to benefit from lower CEB tariffs.', saving:'Save ~₹180/month' },
-  { icon:'🌞',  title:'Enable Solar Peak Harvest', desc:'Your SMT-E-0087 meter supports net metering. During peak solar hours (11 AM–3 PM), limit grid draw.', saving:'Save ~₹250/month' },
-  { icon:'🔌',  title:'Unplug Standby Devices',   desc:'TV, microwave, and chargers in standby consume 5–15 W continuously. Unplugging saves 30–80 kWh/year.', saving:'Save ~₹60/month' },
+  { icon:'❄️',  title:'Raise AC by 2°C',     desc:'Setting AC from 18°C to 20°C reduces compressor load by ~10%, saving energy with minimal comfort impact.', saving:'Save ~LKR 120/month' },
+  { icon:'⏰',  title:'Shift to Off-Peak Hours', desc:'Run high-draw appliances (washing machine, water heater) between 10 PM–6 AM to benefit from lower CEB tariffs.', saving:'Save ~LKR 180/month' },
+  { icon:'🌞',  title:'Enable Solar Peak Harvest', desc:'Your SMT-E-0087 meter supports net metering. During peak solar hours (11 AM–3 PM), limit grid draw.', saving:'Save ~LKR 250/month' },
+  { icon:'🔌',  title:'Unplug Standby Devices',   desc:'TV, microwave, and chargers in standby consume 5–15 W continuously. Unplugging saves 30–80 kWh/year.', saving:'Save ~LKR 60/month' },
 ];
 
 // ── Page Init ──────────────────────────────────────────────────

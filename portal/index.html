@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AquaSense – Customer Web Portal</title>
+  <script>
+    window.location.href = "dashboard.html";
+  </script>
   <meta name="description" content="AquaSense Smart Utilities – Real-time water and energy usage dashboard, alerts, and reporting for smart meter customers." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -290,8 +293,8 @@
             <div class="kpi-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
             <div class="kpi-data">
               <span class="kpi-label">Est. Bill (Month)</span>
-              <span class="kpi-value" id="kpi-bill">₹ 1,842</span>
-              <span class="kpi-change positive">↓ ₹220 vs last month</span>
+              <span class="kpi-value" id="kpi-bill">LKR 4,330</span>
+              <span class="kpi-change positive">↓ LKR 417 vs last month</span>
             </div>
             <div class="kpi-sparkline"><canvas id="spark-bill"></canvas></div>
           </div>
@@ -539,12 +542,12 @@
           </div>
         </div>
         <div class="stats-grid">
-          <div class="stat-tile"><span class="stat-label">Monthly Total</span><span class="stat-val blue">7,420 L</span></div>
-          <div class="stat-tile"><span class="stat-label">Daily Average</span><span class="stat-val blue">247 L</span></div>
+          <div class="stat-tile"><span class="stat-label">Monthly Total</span><span class="stat-val blue" id="water-stat-monthly">—</span></div>
+          <div class="stat-tile"><span class="stat-label">Daily Average</span><span class="stat-val blue" id="water-stat-avg">—</span></div>
           <div class="stat-tile"><span class="stat-label">Peak Hour</span><span class="stat-val blue">7:00 AM</span></div>
           <div class="stat-tile"><span class="stat-label">Leakage Events</span><span class="stat-val orange">2</span></div>
           <div class="stat-tile"><span class="stat-label">Avg Pressure</span><span class="stat-val green">2.3 bar</span></div>
-          <div class="stat-tile"><span class="stat-label">Savings vs Target</span><span class="stat-val green">+8%</span></div>
+          <div class="stat-tile"><span class="stat-label">Monthly Cost</span><span class="stat-val green" id="water-stat-cost">—</span></div>
         </div>
       </section>
 
@@ -564,7 +567,7 @@
         <div class="stats-grid">
           <div class="stat-tile"><span class="stat-label">Month kWh</span><span class="stat-val yellow">412 kWh</span></div>
           <div class="stat-tile"><span class="stat-label">Peak Demand</span><span class="stat-val yellow">3.8 kW</span></div>
-          <div class="stat-tile"><span class="stat-label">Off-peak Saving</span><span class="stat-val green">₹340</span></div>
+          <div class="stat-tile"><span class="stat-label">Off-peak Saving</span><span class="stat-val green">LKR 340</span></div>
           <div class="stat-tile"><span class="stat-label">CO₂ Offset</span><span class="stat-val green">12 kg</span></div>
           <div class="stat-tile"><span class="stat-label">Anomalies</span><span class="stat-val orange">1</span></div>
           <div class="stat-tile"><span class="stat-label">Efficiency Score</span><span class="stat-val blue">82/100</span></div>

@@ -35,6 +35,7 @@ import sys
 import time
 import threading
 import uuid
+import urllib.request
 from dotenv import load_dotenv
 load_dotenv()
 from datetime import datetime, timezone
@@ -62,6 +63,45 @@ SHADOW_TOPIC_PREFIX = "$aws/things/{meter_id}/shadow/update"
 ALERT_THRESHOLD_LITERS = 20.0          # single-reading alert threshold
 DAILY_BUDGET_LITERS = 200.0            # per-meter daily budget
 CLIENT_ID_PREFIX = "aquasense-sim"
+
+# Mapping of seeded meters to their corresponding database user IDs and types
+METER_USER_MAP = {
+    "SMT-W-0041": {"userId": "b1031dfa-00a1-7027-bb09-2f4ed1abb296", "type": "water"},
+    "SMT-W-0042": {"userId": "b1031dfa-00a1-7027-bb09-2f4ed1abb296", "type": "water"},
+    "SMT-E-0087": {"userId": "b1031dfa-00a1-7027-bb09-2f4ed1abb296", "type": "energy"},
+    "SMT-W-0043": {"userId": "a0000001-0000-0000-0000-000000000002", "type": "water"},
+    "SMT-E-0088": {"userId": "a0000001-0000-0000-0000-000000000002", "type": "energy"},
+    "SMT-W-0044": {"userId": "a0000001-0000-0000-0000-000000000002", "type": "water"}
+}
+
+def _post_to_alb(alb_endpoint: str, meter_id: str, value: float):
+    # Map meter
+    info = METER_USER_MAP.get(meter_id, {
+        "userId": "a0000001-0000-0000-0000-000000000001",
+        "type": "water"
+    })
+    
+    payload = {
+        "meterId": meter_id,
+        "type": info["type"],
+        "value": value,
+        "pressure": round(random.uniform(2.0, 3.0), 1) if info["type"] == "water" else None,
+        "userId": info["userId"]
+    }
+    
+    url = f"{alb_endpoint.rstrip('/')}/api/usage/ingest"
+    data = json.dumps(payload).encode('utf-8')
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={'Content-Type': 'application/json'},
+        method='POST'
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as res:
+            pass
+    except Exception as e:
+        log.warning("[%s] Failed to ingest via REST to ALB: %s", meter_id, e)
 
 # ---------------------------------------------------------------------------
 # MeterState – tracks cumulative usage per meter
@@ -176,12 +216,13 @@ def _on_connection_resumed(connection, return_code, session_present, **kwargs):
 # ---------------------------------------------------------------------------
 class MeterPublisher(threading.Thread):
     def __init__(self, meter: MeterState, connection: mqtt.Connection,
-                 interval: float, stop_event: threading.Event):
+                 interval: float, stop_event: threading.Event, alb_endpoint: str = None):
         super().__init__(name=f"publisher-{meter.meter_id}", daemon=True)
         self.meter = meter
         self.connection = connection
         self.interval = interval
         self.stop_event = stop_event
+        self.alb_endpoint = alb_endpoint
 
     def _publish(self, topic: str, payload: dict):
         message = json.dumps(payload)
@@ -227,6 +268,10 @@ class MeterPublisher(threading.Thread):
                                 self.meter.meter_id, reading["water_usage_liters"],
                                 ALERT_THRESHOLD_LITERS)
 
+                # ── ALB Ingestion (optional REST sync) ──────────────────────
+                if self.alb_endpoint:
+                    _post_to_alb(self.alb_endpoint, self.meter.meter_id, reading["water_usage_liters"])
+
             except Exception as exc:
                 log.error("[%s] Publish error: %s", self.meter.meter_id, exc)
 
@@ -259,6 +304,8 @@ def parse_args():
     p.add_argument("--greengrass", action="store_true",
                    default=os.getenv("GREENGRASS_MODE", "0") == "1",
                    help="Connect through a local Greengrass Core instead of IoT Core directly")
+    p.add_argument("--alb-endpoint", default=os.getenv("ALB_ENDPOINT"),
+                   help="ALB DNS name for database REST ingestion")
     p.add_argument("--verbose", action="store_true",
                    help="Enable debug logging")
     return p.parse_args()
@@ -325,7 +372,8 @@ def main():
     threads: list[MeterPublisher] = []
     for conn, meter in connections:
         t = MeterPublisher(meter=meter, connection=conn,
-                           interval=args.interval, stop_event=stop_event)
+                           interval=args.interval, stop_event=stop_event,
+                           alb_endpoint=args.alb_endpoint)
         t.start()
         threads.append(t)
 

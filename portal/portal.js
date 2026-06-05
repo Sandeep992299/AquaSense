@@ -588,8 +588,8 @@ function initSectionCharts(name) {
 async function initWaterSection() {
   // Fetch real 30-day readings from API; fall back to seed-derived MOCK data
   const [kitchenRes, gardenRes] = await Promise.all([
-    apiSafe('usage', `/api/usage/readings/SMT-W-0041?limit=180`),  // ~6 readings/day × 30d
-    apiSafe('usage', `/api/usage/readings/SMT-W-0042?limit=120`),  // ~4 readings/day × 30d
+    apiSafe('usage', `/api/usage/readings/SMT-W-0041?limit=180`),
+    apiSafe('usage', `/api/usage/readings/SMT-W-0042?limit=120`),
   ]);
 
   // Build 30 day labels
@@ -598,7 +598,7 @@ async function initWaterSection() {
     return d.getDate() + '/' + d.toLocaleString('en-IN', { month:'short' });
   });
 
-  // Aggregate API readings by day if available, else use MOCK
+  // Aggregate API readings by day
   function aggregateByDay(rows, days) {
     if (!rows?.length) return null;
     const buckets = {};
@@ -606,7 +606,6 @@ async function initWaterSection() {
       const day = new Date(r.recorded_at).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
       buckets[day] = (buckets[day] || 0) + parseFloat(r.value);
     });
-    // Build ordered array matching last N days
     const d = new Date();
     return Array.from({ length: days }, (_, i) => {
       const t = new Date(d); t.setDate(d.getDate() - (days - 1) + i);
@@ -620,14 +619,41 @@ async function initWaterSection() {
   const kitchenData = kitchenLive || MOCK.waterDays30['SMT-W-0041'];
   const gardenData  = gardenLive  || MOCK.waterDays30['SMT-W-0042'];
 
-  // 30-day detail chart
-  makeLineChart('chart-water-detail', months30, [
-    { label:'Kitchen (L)',  data: kitchenData, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.12)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 },
-    { label:'Garden (L)',   data: gardenData,  borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.07)',  fill:true, tension:0.4, borderWidth:1.5, pointRadius:0 },
-    { label:'Target (L)',   data: Array(30).fill(270), borderColor:'rgba(52,211,153,0.4)', borderDash:[5,5], borderWidth:1, pointRadius:0, fill:false },
-  ]);
+  // ── Update stat tiles dynamically ───────────────────────────────
+  // Monthly total: sum all non-null values from both meters over 30 days
+  const combined = kitchenData.map((k, i) => (k || 0) + (gardenData[i] || 0));
+  const monthlyTotal = combined.reduce((s, v) => s + v, 0);
+  const dailyAvg     = monthlyTotal / 30;
+  const LKR_RATE_WATER = 9.50; // LKR per 1000 L (approx NWSDB slab)
+  const monthlyCostLKR = (monthlyTotal / 1000) * LKR_RATE_WATER;
 
-  // Pressure chart – 24-hour trace from MOCK (actual pressure comes via live telemetry)
+  // Update stat tiles (they may or may not exist in current HTML)
+  const elMonthly = $('water-stat-monthly');
+  const elAvg     = $('water-stat-avg');
+  const elCost    = $('water-stat-cost');
+  if (elMonthly) elMonthly.textContent = monthlyTotal.toFixed(0) + ' L';
+  if (elAvg)     elAvg.textContent     = dailyAvg.toFixed(0) + ' L';
+  if (elCost)    elCost.textContent    = 'LKR ' + monthlyCostLKR.toFixed(0);
+
+  // ── Daily Consumption chart ──────────────────────────────────────
+  makeLineChart('chart-water-detail', months30, [
+    { label:'Kitchen (L)',  data: kitchenData, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.12)', fill:true, tension:0.4, borderWidth:2, pointRadius:2, pointBackgroundColor:'#38bdf8' },
+    { label:'Garden (L)',   data: gardenData,  borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.07)',  fill:true, tension:0.4, borderWidth:1.5, pointRadius:0 },
+    { label:'Total (L)',    data: combined,    borderColor:'rgba(52,211,153,0.7)', borderDash:[5,5], borderWidth:1.5, pointRadius:0, fill:false },
+    { label:'Target (L)',  data: Array(30).fill(270), borderColor:'rgba(248,113,113,0.4)', borderDash:[3,3], borderWidth:1, pointRadius:0, fill:false },
+  ], {
+    plugins: {
+      legend: { labels: { color:'#94a3b8', font:{size:11}, boxWidth:12 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(1)} L` } }
+    },
+    scales: {
+      x: { ticks:{color:'#4a5568',font:{size:10},maxTicksLimit:12}, grid:{color:'rgba(255,255,255,0.04)'} },
+      y: { ticks:{color:'#4a5568',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'},
+           title:{display:true,text:'Litres',color:'#4a5568',font:{size:10}} }
+    }
+  });
+
+  // Pressure chart
   const hours = Array.from({ length: 24 }, (_, i) => i + ':00');
   makeLineChart('chart-pressure', hours, [
     { label:'Pressure (bar)', data: MOCK.pressureHours, borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.1)', fill:true, tension:0.4, borderWidth:2, pointRadius:0 }
@@ -739,22 +765,22 @@ function filterAlerts2(f, btn) { currentFilter = f; filterAlerts(f, btn); }
 // BILLING & PAYMENTS SECTION
 // =====================================================================
 const MOCK_BILLS = [
-  { id:'b-001', month:'2026-05', water_litres:7200, energy_kwh:412, water_cost:648, energy_cost:1162, fixed_charge:0, total:1810, currency:'INR', status:'paid',   due_date:new Date(Date.now()-864000000).toISOString(), issued_at:new Date(Date.now()-2592000000).toISOString() },
-  { id:'b-002', month:'2026-04', water_litres:8100, energy_kwh:398, water_cost:729, energy_cost:1122, fixed_charge:0, total:1851, currency:'INR', status:'paid',   due_date:new Date(Date.now()-4320000000).toISOString(), issued_at:new Date(Date.now()-5184000000).toISOString() },
-  { id:'b-003', month:'2026-03', water_litres:6900, energy_kwh:435, water_cost:621, energy_cost:1227, fixed_charge:0, total:1848, currency:'INR', status:'unpaid', due_date:new Date(Date.now()+864000000).toISOString(),  issued_at:new Date(Date.now()-7776000000).toISOString() },
-  { id:'b-004', month:'2026-02', water_litres:7500, energy_kwh:421, water_cost:675, energy_cost:1187, fixed_charge:0, total:1862, currency:'INR', status:'paid',   due_date:new Date(Date.now()-8640000000).toISOString(), issued_at:new Date(Date.now()-10368000000).toISOString() },
-  { id:'b-005', month:'2026-01', water_litres:8400, energy_kwh:445, water_cost:756, energy_cost:1255, fixed_charge:0, total:2011, currency:'INR', status:'overdue', due_date:new Date(Date.now()-17280000000).toISOString(), issued_at:new Date(Date.now()-20736000000).toISOString() },
-  { id:'b-006', month:'2025-12', water_litres:9100, energy_kwh:488, water_cost:819, energy_cost:1376, fixed_charge:0, total:2195, currency:'INR', status:'paid',   due_date:new Date(Date.now()-25920000000).toISOString(), issued_at:new Date(Date.now()-28512000000).toISOString() },
+  { id:'b-001', month:'2026-05', water_litres:7200, energy_kwh:412, water_cost:684,  energy_cost:3502, fixed_charge:0, total:4186, currency:'LKR', status:'paid',    due_date:new Date(Date.now()-864000000).toISOString(),   issued_at:new Date(Date.now()-2592000000).toISOString() },
+  { id:'b-002', month:'2026-04', water_litres:8100, energy_kwh:398, water_cost:770,  energy_cost:3383, fixed_charge:0, total:4153, currency:'LKR', status:'paid',    due_date:new Date(Date.now()-4320000000).toISOString(),  issued_at:new Date(Date.now()-5184000000).toISOString() },
+  { id:'b-003', month:'2026-03', water_litres:6900, energy_kwh:435, water_cost:655,  energy_cost:3698, fixed_charge:0, total:4353, currency:'LKR', status:'unpaid',  due_date:new Date(Date.now()+864000000).toISOString(),   issued_at:new Date(Date.now()-7776000000).toISOString() },
+  { id:'b-004', month:'2026-02', water_litres:7500, energy_kwh:421, water_cost:713,  energy_cost:3579, fixed_charge:0, total:4292, currency:'LKR', status:'paid',    due_date:new Date(Date.now()-8640000000).toISOString(),  issued_at:new Date(Date.now()-10368000000).toISOString() },
+  { id:'b-005', month:'2026-01', water_litres:8400, energy_kwh:445, water_cost:798,  energy_cost:3783, fixed_charge:0, total:4581, currency:'LKR', status:'overdue', due_date:new Date(Date.now()-17280000000).toISOString(), issued_at:new Date(Date.now()-20736000000).toISOString() },
+  { id:'b-006', month:'2025-12', water_litres:9100, energy_kwh:488, water_cost:864,  energy_cost:4148, fixed_charge:0, total:5012, currency:'LKR', status:'paid',    due_date:new Date(Date.now()-25920000000).toISOString(), issued_at:new Date(Date.now()-28512000000).toISOString() },
 ];
 const MOCK_PAYMENTS = [
-  { id:'p-001', bill_id:'b-001', month:'2026-05', amount:1810, method:'UPI',        transaction_ref:'UPI1748923401', paid_at:new Date(Date.now()-604800000).toISOString() },
-  { id:'p-002', bill_id:'b-002', month:'2026-04', amount:1851, method:'NET_BANKING', transaction_ref:'NB1746331200', paid_at:new Date(Date.now()-3024000000).toISOString() },
-  { id:'p-003', bill_id:'b-004', month:'2026-02', amount:1862, method:'UPI',        transaction_ref:'UPI1741996800', paid_at:new Date(Date.now()-7344000000).toISOString() },
+  { id:'p-001', bill_id:'b-001', month:'2026-05', amount:4186, method:'Online Banking', transaction_ref:'BOC1748923401', paid_at:new Date(Date.now()-604800000).toISOString() },
+  { id:'p-002', bill_id:'b-002', month:'2026-04', amount:4153, method:'Online Banking', transaction_ref:'BOC1746331200', paid_at:new Date(Date.now()-3024000000).toISOString() },
+  { id:'p-003', bill_id:'b-004', month:'2026-02', amount:4292, method:'Online Banking', transaction_ref:'BOC1741996800', paid_at:new Date(Date.now()-7344000000).toISOString() },
 ];
 const MOCK_RATES = [
-  { resource_type:'water',  rate_per_unit:'0.09', unit:'per litre',  currency:'INR', effective_from:'2026-01-01', active:true },
-  { resource_type:'energy', rate_per_unit:'2.82', unit:'per kWh',    currency:'INR', effective_from:'2026-01-01', active:true },
-  { resource_type:'fixed',  rate_per_unit:'0',    unit:'per month',  currency:'INR', effective_from:'2026-01-01', active:true },
+  { resource_type:'water',  rate_per_unit:'0.095', unit:'per litre',  currency:'LKR', effective_from:'2026-01-01', active:true },
+  { resource_type:'energy', rate_per_unit:'8.50',  unit:'per kWh',    currency:'LKR', effective_from:'2026-01-01', active:true },
+  { resource_type:'fixed',  rate_per_unit:'0',     unit:'per month',  currency:'LKR', effective_from:'2026-01-01', active:true },
 ];
 
 let _billingInited   = false;
@@ -802,7 +828,7 @@ async function loadBillingOverview() {
 
   // Unpaid total
   const bkpiUnpaid = $('bkpi-unpaid');
-  if (bkpiUnpaid) bkpiUnpaid.textContent = '₹ ' + parseFloat(unpaid).toLocaleString('en-IN', {maximumFractionDigits:0});
+  if (bkpiUnpaid) bkpiUnpaid.textContent = 'LKR ' + parseFloat(unpaid).toLocaleString('en-IN', {maximumFractionDigits:0});
   const bkpiUnpaidCount = $('bkpi-unpaid-count');
   if (bkpiUnpaidCount) bkpiUnpaidCount.textContent = unpaidCount + ' bill' + (unpaidCount!==1?'s':'')+' pending';
 
@@ -813,7 +839,7 @@ async function loadBillingOverview() {
   // Last bill
   if (lastBill) {
     const bkpiLast = $('bkpi-last');
-    if (bkpiLast) bkpiLast.textContent = '₹ ' + parseFloat(lastBill.total).toLocaleString('en-IN', {maximumFractionDigits:0});
+    if (bkpiLast) bkpiLast.textContent = 'LKR ' + parseFloat(lastBill.total).toLocaleString('en-IN', {maximumFractionDigits:0});
     const bkpiLastMonth = $('bkpi-last-month');
     if (bkpiLastMonth) bkpiLastMonth.textContent = fmtMonth(lastBill.month) + ' · ' + lastBill.status.toUpperCase();
   }
@@ -835,7 +861,7 @@ async function loadBillingOverview() {
   const curBill = _billingBills.find(b => b.month === curMonthKey);
   if (curBill) {
     const bkpiEst = $('bkpi-estimate');
-    if (bkpiEst) bkpiEst.textContent = '₹ ' + parseFloat(curBill.total).toLocaleString('en-IN', {maximumFractionDigits:0});
+    if (bkpiEst) bkpiEst.textContent = 'LKR ' + parseFloat(curBill.total).toLocaleString('en-IN', {maximumFractionDigits:0});
     const bkpiEstD = $('bkpi-estimate-detail');
     if (bkpiEstD) bkpiEstD.textContent = 'Final · ' + fmtMonth(curMonthKey);
   } else {
@@ -847,7 +873,7 @@ async function loadBillingOverview() {
     const rateE = parseFloat(_billingRates.find(r=>r.resource_type==='energy')?.rate_per_unit || 2.82);
     const est = (waterL * rateW + energyKwh * rateE).toFixed(0);
     const bkpiEst = $('bkpi-estimate');
-    if (bkpiEst) bkpiEst.textContent = '₹ ' + parseInt(est).toLocaleString('en-IN');
+    if (bkpiEst) bkpiEst.textContent = 'LKR ' + parseInt(est).toLocaleString('en-IN');
     const bkpiEstD = $('bkpi-estimate-detail');
     if (bkpiEstD) bkpiEstD.textContent = 'Estimated · ' + fmtMonth(curMonthKey);
   }
@@ -866,7 +892,7 @@ function renderTariffRates(rates) {
   el.innerHTML = rates.map(r => `
     <div class="tariff-card">
       <span class="tariff-type">${icons[r.resource_type]||'📋'} ${r.resource_type}</span>
-      <span class="tariff-rate" style="color:${colors[r.resource_type]||'#f1f5f9'}">₹ ${parseFloat(r.rate_per_unit).toFixed(2)}</span>
+      <span class="tariff-rate" style="color:${colors[r.resource_type]||'#f1f5f9'}">LKR ${parseFloat(r.rate_per_unit).toFixed(3)}</span>
       <span class="tariff-unit">${r.unit} · ${r.currency}</span>
       <span class="tariff-since">Effective: ${r.effective_from ? r.effective_from.slice(0,10) : '—'}</span>
     </div>`).join('');
@@ -884,7 +910,7 @@ function renderPaymentHistory(payments) {
     <tr>
       <td title="${p.id}">${shortId(p.id)}</td>
       <td style="color:var(--accent-blue)">${fmtMonth(p.month || '')}</td>
-      <td style="color:#34d399;font-weight:700">₹ ${parseFloat(p.amount).toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
+      <td style="color:#34d399;font-weight:700">LKR ${parseFloat(p.amount).toLocaleString('en-IN', {maximumFractionDigits:0})}</td>
       <td>${p.method || '—'}</td>
       <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted)">${p.transaction_ref || '—'}</td>
       <td>${fmt(p.paid_at)}</td>
@@ -920,10 +946,10 @@ async function renderBillsTable() {
     return `<tr id="bill-row-${b.id}">
       <td style="font-family:'JetBrains Mono',monospace;color:var(--text-muted);font-size:10px">#${b.id.slice(-6)}</td>
       <td style="font-weight:600;color:var(--text-primary)">${fmtMonth(b.month)}</td>
-      <td class="td-value">₹ ${parseFloat(b.water_cost||0).toLocaleString('en-IN',{maximumFractionDigits:0})}<br><span style="font-size:9px;color:var(--text-muted)">${parseFloat(b.water_litres||0).toFixed(0)} L</span></td>
-      <td class="td-energy">₹ ${parseFloat(b.energy_cost||0).toLocaleString('en-IN',{maximumFractionDigits:0})}<br><span style="font-size:9px;color:var(--text-muted)">${parseFloat(b.energy_kwh||0).toFixed(0)} kWh</span></td>
-      <td style="color:var(--text-muted)">₹ ${parseFloat(b.fixed_charge||0).toFixed(0)}</td>
-      <td style="font-weight:800;font-size:13px;color:var(--text-primary)">₹ ${parseFloat(b.total).toLocaleString('en-IN',{maximumFractionDigits:0})}</td>
+      <td class="td-value">LKR ${parseFloat(b.water_cost||0).toLocaleString('en-IN',{maximumFractionDigits:0})}<br><span style="font-size:9px;color:var(--text-muted)">${parseFloat(b.water_litres||0).toFixed(0)} L</span></td>
+      <td class="td-energy">LKR ${parseFloat(b.energy_cost||0).toLocaleString('en-IN',{maximumFractionDigits:0})}<br><span style="font-size:9px;color:var(--text-muted)">${parseFloat(b.energy_kwh||0).toFixed(0)} kWh</span></td>
+      <td style="color:var(--text-muted)">LKR ${parseFloat(b.fixed_charge||0).toFixed(0)}</td>
+      <td style="font-weight:800;font-size:13px;color:var(--text-primary)">LKR ${parseFloat(b.total).toLocaleString('en-IN',{maximumFractionDigits:0})}</td>
       <td style="color:${new Date(b.due_date)<new Date()&&!isPaid?'#f87171':'var(--text-secondary)'}">${fmtDate(b.due_date)}</td>
       <td><span class="${statusClass}">${statusLabel}</span></td>
       <td>${action}</td>
@@ -938,7 +964,7 @@ async function payBill(billId, total) {
       method: 'POST',
       body: JSON.stringify({ billId, userId: AUTH.userId, method: 'UPI' })
     });
-    showToast('✓ Payment successful for ₹' + parseFloat(total).toLocaleString('en-IN',{maximumFractionDigits:0}));
+    showToast('✓ Payment successful · LKR ' + parseFloat(total).toLocaleString('en-IN',{maximumFractionDigits:0}));
   } catch (e) {
     // In demo or if API unavailable, simulate payment
     showToast('✓ Payment recorded (demo/offline)');
@@ -985,14 +1011,14 @@ async function loadCurrentUsageBill() {
   // Render bars
   const barsEl = $('usage-breakdown-bars'); if (!barsEl) return;
   barsEl.innerHTML = [
-    { label:'💧 Water', cost:waterCost, detail:`${waterL.toFixed(0)} L × ₹${rateW}/L`, pct:(waterCost/maxCost)*100, fill:'linear-gradient(90deg,#38bdf8,#06b6d4)' },
-    { label:'⚡ Energy', cost:energyCost, detail:`${energyKwh.toFixed(0)} kWh × ₹${rateE}/kWh`, pct:(energyCost/maxCost)*100, fill:'linear-gradient(90deg,#fbbf24,#f59e0b)' },
+    { label:'💧 Water', cost:waterCost, detail:`${waterL.toFixed(0)} L × LKR ${rateW}/L`, pct:(waterCost/maxCost)*100, fill:'linear-gradient(90deg,#38bdf8,#06b6d4)' },
+    { label:'⚡ Energy', cost:energyCost, detail:`${energyKwh.toFixed(0)} kWh × LKR ${rateE}/kWh`, pct:(energyCost/maxCost)*100, fill:'linear-gradient(90deg,#fbbf24,#f59e0b)' },
     { label:'🔒 Fixed Charge', cost:fixedCost, detail:'Monthly fixed tariff', pct: fixedCost>0 ? Math.max((fixedCost/maxCost)*100, 3) : 3, fill:'linear-gradient(90deg,#a78bfa,#8b5cf6)' },
   ].map(item => `
     <div class="usage-cost-bar-wrap">
       <div class="usage-cost-label-row">
         <span class="usage-cost-name">${item.label}</span>
-        <span class="usage-cost-amt">₹ ${item.cost.toLocaleString('en-IN',{maximumFractionDigits:0})}</span>
+        <span class="usage-cost-amt">LKR ${item.cost.toLocaleString('en-IN',{maximumFractionDigits:0})}</span>
       </div>
       <div class="usage-cost-track">
         <div class="usage-cost-fill" style="width:${item.pct.toFixed(1)}%;background:${item.fill}"></div>
@@ -1003,7 +1029,7 @@ async function loadCurrentUsageBill() {
   // Totals row
   const totalsEl = $('usage-totals');
   if (totalsEl) totalsEl.innerHTML = [
-    { label:'Total Estimate', val:'₹ '+total.toLocaleString('en-IN',{maximumFractionDigits:0}) },
+    { label:'Total Estimate', val:'LKR '+total.toLocaleString('en-IN',{maximumFractionDigits:0}) },
     { label:'Water Litres', val: waterL.toFixed(0)+' L' },
     { label:'Energy Used', val: energyKwh.toFixed(0)+' kWh' },
     { label:'Days into Month', val: new Date().getDate()+' / '+new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate() },
@@ -1025,9 +1051,9 @@ async function loadCurrentUsageBill() {
   makeLineChart('chart-bill-trend',
     trend.map(b => fmtMonth(b.month)),
     [
-      { label:'Water Cost (₹)', data:trend.map(b=>parseFloat(b.water_cost||0)), borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.1)', fill:true, tension:0.4, borderWidth:2, pointRadius:3, pointBackgroundColor:'#38bdf8' },
-      { label:'Energy Cost (₹)', data:trend.map(b=>parseFloat(b.energy_cost||0)), borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.08)', fill:true, tension:0.4, borderWidth:2, pointRadius:3, pointBackgroundColor:'#fbbf24' },
-      { label:'Total (₹)', data:trend.map(b=>parseFloat(b.total)), borderColor:'#34d399', borderDash:[5,5], borderWidth:2, pointRadius:0, fill:false },
+      { label:'Water Cost (LKR)', data:trend.map(b=>parseFloat(b.water_cost||0)), borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.1)', fill:true, tension:0.4, borderWidth:2, pointRadius:3, pointBackgroundColor:'#38bdf8' },
+      { label:'Energy Cost (LKR)', data:trend.map(b=>parseFloat(b.energy_cost||0)), borderColor:'#fbbf24', backgroundColor:'rgba(251,191,36,0.08)', fill:true, tension:0.4, borderWidth:2, pointRadius:3, pointBackgroundColor:'#fbbf24' },
+      { label:'Total (LKR)', data:trend.map(b=>parseFloat(b.total)), borderColor:'#34d399', borderDash:[5,5], borderWidth:2, pointRadius:0, fill:false },
     ]
   );
 }
@@ -1063,14 +1089,14 @@ async function renderBillForecast() {
 
   // Update headline cards
   const fcAmount = $('forecast-amount');
-  if (fcAmount) fcAmount.textContent = '₹ ' + parseInt(nextForecast.total).toLocaleString('en-IN');
+  if (fcAmount) fcAmount.textContent = 'LKR ' + parseInt(nextForecast.total).toLocaleString('en-IN');
   const fcDetail = $('forecast-detail');
   if (fcDetail) fcDetail.textContent = `Based on avg of last ${history.slice(0,3).length} bills · ${fmtMonth(nextForecast.month)}`;
 
   const fcWater = $('fcast-water');
-  if (fcWater) fcWater.innerHTML = '₹ '+parseInt(nextForecast.water).toLocaleString('en-IN') + '<br><small style="font-size:12px;font-weight:400;color:var(--text-muted)">Water</small>';
+  if (fcWater) fcWater.innerHTML = 'LKR '+parseInt(nextForecast.water).toLocaleString('en-IN') + '<br><small style="font-size:12px;font-weight:400;color:var(--text-muted)">Water</small>';
   const fcEnergy = $('fcast-energy');
-  if (fcEnergy) fcEnergy.innerHTML = '₹ '+parseInt(nextForecast.energy).toLocaleString('en-IN') + '<br><small style="font-size:12px;font-weight:400;color:var(--text-muted)">Energy</small>';
+  if (fcEnergy) fcEnergy.innerHTML = 'LKR '+parseInt(nextForecast.energy).toLocaleString('en-IN') + '<br><small style="font-size:12px;font-weight:400;color:var(--text-muted)">Energy</small>';
 
   // Forecast chart — last 6 actual + 3 projected
   const actualLabels = history.slice(-6).map(b => fmtMonth(b.month));
@@ -1085,8 +1111,8 @@ async function renderBillForecast() {
   const forecastPadded = [...Array(Math.max(actualLabels.length-1,0)).fill(null), actualTotals[actualTotals.length-1], ...forecastTotals];
 
   makeLineChart('chart-forecast', allLabels, [
-    { label:'Actual Bill (₹)', data:actualPadded, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.08)', fill:true, tension:0.4, borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#38bdf8' },
-    { label:'Forecast (₹)',   data:forecastPadded, borderColor:'#34d399', backgroundColor:'rgba(52,211,153,0.06)', borderDash:[6,4], fill:true, tension:0.4, borderWidth:2, pointRadius:4, pointBackgroundColor:'#34d399', pointStyle:'rectRot' },
+    { label:'Actual Bill (LKR)', data:actualPadded, borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,0.08)', fill:true, tension:0.4, borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#38bdf8' },
+    { label:'Forecast (LKR)',   data:forecastPadded, borderColor:'#34d399', backgroundColor:'rgba(52,211,153,0.06)', borderDash:[6,4], fill:true, tension:0.4, borderWidth:2, pointRadius:4, pointBackgroundColor:'#34d399', pointStyle:'rectRot' },
   ]);
 
   // Assumptions
@@ -1094,8 +1120,8 @@ async function renderBillForecast() {
   assEl.innerHTML = [
     { label:'Avg Monthly Water', val: (avgWaterCost/rateW).toFixed(0)+' L', note:'Based on last '+history.slice(0,3).length+' bills' },
     { label:'Avg Monthly Energy', val: (avgEnergyCost/rateE).toFixed(0)+' kWh', note:'Based on last '+history.slice(0,3).length+' bills' },
-    { label:'Water Rate', val:'₹ '+rateW+' / L', note:'Current active tariff' },
-    { label:'Energy Rate', val:'₹ '+rateE+' / kWh', note:'Current active tariff' },
+    { label:'Water Rate', val:'LKR '+rateW+' / L', note:'Current active tariff' },
+    { label:'Energy Rate', val:'LKR '+rateE+' / kWh', note:'Current active tariff' },
     { label:'Trend Method', val:'3-Month Rolling Avg', note:'±5% seasonal variation' },
     { label:'Forecast Horizon', val:'3 Months', note:forecast.map(f=>fmtMonth(f.month)).join(' · ') },
   ].map(a => `

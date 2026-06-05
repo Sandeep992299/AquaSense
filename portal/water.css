@@ -1,0 +1,84 @@
+/* =============================================
+   AquaSense – Water Usage Page CSS
+   ============================================= */
+
+/* ── Water KPI Cards ──────────────────────── */
+.water-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.water-kpi-card {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex; align-items: center; gap: 14px;
+  position: relative; overflow: hidden;
+  transition: var(--transition);
+}
+.water-kpi-card:hover { transform: translateY(-2px); border-color: rgba(56, 189, 248, 0.12); }
+.water-kpi-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+}
+.water-kpi-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  background: rgba(56, 189, 248, 0.12); color: var(--accent-blue);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.water-kpi-data { flex: 1; }
+.water-kpi-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing:.06em; display:block; margin-bottom:4px; }
+.water-kpi-value { font-size: 22px; font-weight: 800; color: var(--text-primary); display:block; line-height:1; margin-bottom:4px; }
+.water-kpi-value small { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.water-kpi-change { font-size: 11px; font-weight: 600; display:block; }
+.water-kpi-change.positive { color: var(--accent-green); }
+.water-kpi-change.negative { color: #f87171; }
+.water-kpi-change.neutral  { color: var(--text-muted); }
+.water-kpi-sparkline { width: 72px; height: 36px; flex-shrink: 0; }
+
+/* ── Water Charts Row ──────────────────────── */
+.water-charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 900px) { .water-charts-row { grid-template-columns: 1fr; } }
+
+/* ── Stats Grid ───────────────────────────── */
+.water-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+.water-stat-tile {
+  background: var(--bg2);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: var(--transition);
+}
+.water-stat-tile:hover { border-color: rgba(56, 189, 248, 0.2); }
+.water-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.water-stat-val {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+}
+.water-stat-val.blue   { color: #38bdf8; }
+.water-stat-val.cyan   { color: #06b6d4; }
+.water-stat-val.green  { color: #34d399; }
+.water-stat-val.orange { color: #fb923c; }
+.water-stat-val.purple { color: #a78bfa; }
