@@ -1,0 +1,246 @@
+/* =============================================
+   AquaSense – Data Management (CRUD) Page CSS
+   ============================================= */
+
+/* ── Summary Chart Card ─────────────────────────── */
+.crud-summary-card {
+  background: #111d2e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.crud-summary-card .chart-header { margin-bottom: 14px; }
+.crud-summary-card h3 { font-size: 14px; font-weight: 700; }
+
+/* ── CRUD Tab Bar ───────────────────────────────── */
+.crud-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  background: #111d2e;
+  padding: 5px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  width: fit-content;
+}
+.crud-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  color: #4a5568;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.crud-tab svg { flex-shrink: 0; }
+.crud-tab:hover { color: #e2e8f0; background: rgba(255,255,255,0.05); }
+.crud-tab.active {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+/* ── Panel Container ────────────────────────────── */
+.crud-panel { display: none; }
+.crud-panel.active { display: block; }
+
+/* ── Panel Card ─────────────────────────────────── */
+.crud-panel-card {
+  background: #111d2e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+}
+
+/* ── Panel Header ───────────────────────────────── */
+.crud-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.crud-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.crud-panel-title h3 { font-size: 16px; font-weight: 700; }
+.crud-count {
+  font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 2px 10px;
+  color: #4a5568;
+  font-weight: 600;
+}
+
+/* ── Create button ──────────────────────────────── */
+.btn-crud-create {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #fff;
+  border: none;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 2px 12px rgba(56, 189, 248, 0.3);
+}
+.btn-crud-create:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.45);
+}
+
+/* ── Filter row ─────────────────────────────────── */
+.crud-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.crud-filter-row select,
+.crud-filter-row input[type="number"] {
+  background: #0d1626;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #e2e8f0;
+  font-size: 12px;
+  transition: all .2s ease;
+}
+.crud-filter-row select:focus,
+.crud-filter-row input:focus {
+  outline: none;
+  border-color: rgba(56,189,248,0.4);
+  box-shadow: 0 0 0 3px rgba(56,189,248,0.08);
+}
+
+/* ── Table wrapper ──────────────────────────────── */
+.readings-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.readings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 600px;
+}
+.readings-table th {
+  text-align: left;
+  padding: 11px 14px;
+  color: #4a5568;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  white-space: nowrap;
+}
+.readings-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.readings-table tr:last-child td { border-bottom: none; }
+.readings-table tr:hover td { background: rgba(255,255,255,0.025); }
+.readings-table tr.row-anomaly td { background: rgba(248,113,113,0.05); }
+.readings-table tr.row-anomaly td:first-child { border-left: 3px solid #f87171; }
+
+/* ── Type badges ────────────────────────────────── */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.type-badge.water  { background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.25); }
+.type-badge.energy { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+
+/* ── Td value colors ────────────────────────────── */
+.td-value    { color: #38bdf8 !important; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.td-energy   { color: #fbbf24 !important; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.td-pressure { color: #a78bfa !important; font-family: 'JetBrains Mono', monospace; }
+.td-q-normal  { color: #34d399 !important; font-weight: 600; }
+.td-q-anomaly { color: #f87171 !important; font-weight: 700; }
+.sev-critical { color: #f87171 !important; font-weight: 700; }
+.sev-warning  { color: #fbbf24 !important; font-weight: 600; }
+.sev-info     { color: #38bdf8 !important; }
+.st-active    { color: #34d399 !important; font-weight: 600; }
+.st-resolved  { color: #4a5568 !important; }
+
+/* ── Action Buttons ─────────────────────────────── */
+.btn-edit, .btn-delete, .btn-resolve {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all .2s ease;
+  margin-right: 4px;
+}
+.btn-edit    { background: rgba(56,189,248,0.12); color: #38bdf8; border: 1px solid rgba(56,189,248,0.2); }
+.btn-delete  { background: rgba(248,113,113,0.10); color: #f87171; border: 1px solid rgba(248,113,113,0.18); }
+.btn-resolve { background: rgba(52,211,153,0.10); color: #34d399; border: 1px solid rgba(52,211,153,0.18); }
+.btn-edit:hover    { background: rgba(56,189,248,0.22);  transform: translateY(-1px); }
+.btn-delete:hover  { background: rgba(248,113,113,0.20); transform: translateY(-1px); }
+.btn-resolve:hover { background: rgba(52,211,153,0.20);  transform: translateY(-1px); }
+
+/* ── Pagination ─────────────────────────────────── */
+.crud-pagination {
+  display: flex;
+  gap: 5px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.crud-page-btn {
+  padding: 6px 13px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #4a5568;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.crud-page-btn:hover  { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+.crud-page-btn.active { background: rgba(56,189,248,0.14); border-color: rgba(56,189,248,0.3); color: #38bdf8; }
+
+/* ── Empty state ────────────────────────────────── */
+.table-empty {
+  text-align: center;
+  color: #4a5568;
+  padding: 40px 24px;
+  font-size: 13px;
+}
+
+/* ── Responsive ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .crud-tabs { flex-wrap: wrap; width: 100%; }
+  .crud-panel-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+}

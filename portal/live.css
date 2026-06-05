@@ -1,0 +1,204 @@
+/* =============================================
+   AquaSense – Live Telemetry Page CSS
+   ============================================= */
+
+/* ── Meter Grid ───────────────────────────────────────── */
+.live-meter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* ── Meter Cards ──────────────────────────────────────── */
+.live-meter-card {
+  background: #111d2e;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+  transition: all .25s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+.live-meter-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+/* Top accent stripe */
+.live-meter-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: 14px 14px 0 0;
+}
+.live-meter-card.water::before  { background: linear-gradient(90deg, #38bdf8, #06b6d4); }
+.live-meter-card.energy::before { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+
+/* Header row */
+.lmc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.lmc-id {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.lmc-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.lmc-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px currentColor;
+  animation: pulse-dot 2s infinite;
+}
+
+/* Big value */
+.lmc-value {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.lmc-value.water  { color: #38bdf8; }
+.lmc-value.energy { color: #fbbf24; }
+
+.lmc-unit     { font-size: 12px; color: #94a3b8; margin-bottom: 10px; }
+.lmc-location { font-size: 11px; color: #4a5568; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.lmc-pressure { font-size: 11px; color: #a78bfa; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+.lmc-last-seen {
+  font-size: 10px;
+  color: #4a5568;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Chart button */
+.lmc-chart-btn { margin-top: 10px; }
+.lmc-switch-btn {
+  width: 100%;
+  padding: 7px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.lmc-switch-btn:hover {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+.lmc-switch-btn.viewing {
+  background: rgba(52, 211, 153, 0.1);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+/* Pulsing live dot inside cards */
+.live-pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 6px #34d399;
+  margin-right: 3px;
+  animation: pulse-dot 1.5s infinite;
+}
+
+/* ── Stats Row ────────────────────────────────────────── */
+.live-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.live-stat-card {
+  background: #111d2e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: center;
+}
+.live-stat-label {
+  font-size: 10px;
+  color: #4a5568;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+  display: block;
+}
+.live-stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ── Real-time chart card ─────────────────────────────── */
+.live-chart-card {
+  background: #111d2e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 0;
+}
+.live-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.live-chart-header h3 { font-size: 14px; font-weight: 700; }
+
+/* ── Readings Table Card ──────────────────────────────── */
+.readings-card {
+  background: #111d2e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 16px;
+}
+.readings-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.readings-card-header h3 { font-size: 14px; font-weight: 700; }
+
+/* Table row anomaly highlight */
+.readings-table tr.row-anomaly td {
+  background: rgba(248, 113, 113, 0.06) !important;
+}
+.readings-table tr.row-anomaly td:first-child {
+  border-left: 3px solid #f87171;
+}
+
+/* ── Responsive ───────────────────────────────────────── */
+@media (max-width: 768px) {
+  .live-meter-grid { grid-template-columns: 1fr; }
+  .live-stats-row  { grid-template-columns: 1fr; }
+}

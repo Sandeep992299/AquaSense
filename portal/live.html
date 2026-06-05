@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
   <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="live.css" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -62,27 +63,28 @@
       </div>
 
       <!-- Quick stats row -->
-      <div style="display:flex;gap:14px;margin-bottom:20px;flex-wrap:wrap">
-        <div class="card" style="flex:1;min-width:140px;padding:14px 18px">
-          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">Readings Loaded</div>
-          <div style="font-size:22px;font-weight:800;color:var(--accent-blue)" id="live-stat-readings">—</div>
+      <div class="live-stats-row">
+        <div class="live-stat-card">
+          <span class="live-stat-label">📶 Readings Loaded</span>
+          <div class="live-stat-value" id="live-stat-readings" style="color:#38bdf8">—</div>
         </div>
-        <div class="card" style="flex:1;min-width:140px;padding:14px 18px">
-          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">Anomalies</div>
-          <div style="font-size:22px;font-weight:800;color:var(--danger)" id="live-stat-anomalies">—</div>
+        <div class="live-stat-card">
+          <span class="live-stat-label">⚠️ Anomalies</span>
+          <div class="live-stat-value" id="live-stat-anomalies" style="color:#f87171">—</div>
         </div>
-        <div class="card" style="flex:1;min-width:140px;padding:14px 18px">
-          <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">Online Meters</div>
-          <div style="font-size:22px;font-weight:800;color:var(--accent-green)" id="live-stat-online">—</div>
+        <div class="live-stat-card">
+          <span class="live-stat-label">✅ Online Meters</span>
+          <div class="live-stat-value" id="live-stat-online" style="color:#34d399">—</div>
         </div>
       </div>
 
       <!-- Meter Status Cards -->
       <div class="live-meter-grid" id="live-meter-cards"></div>
 
+
       <!-- Real-time Chart -->
-      <div class="chart-card" style="margin-top:20px">
-        <div class="chart-header">
+      <div class="live-chart-card">
+        <div class="live-chart-header">
           <h3>Real-Time Flow Chart</h3>
           <div style="display:flex;align-items:center;gap:12px">
             <select id="live-chart-meter" class="chip-select" onchange="switchLiveChartMeter(this.value)">
@@ -97,8 +99,8 @@
       </div>
 
       <!-- Latest Readings Table -->
-      <div class="chart-card" style="margin-top:20px">
-        <div class="chart-header">
+      <div class="readings-card">
+        <div class="readings-card-header">
           <h3>Latest Readings — All Meters</h3>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="chip active" onclick="filterLiveReadings('all',this)" id="live-filter-all">All</button>
@@ -110,10 +112,11 @@
         <div class="readings-table-wrap">
           <table class="readings-table">
             <thead><tr><th>Reading ID</th><th>Meter ID</th><th>Type</th><th>Value</th><th>Pressure</th><th>Quality</th><th>Recorded At</th></tr></thead>
-            <tbody id="live-readings-body"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Loading readings…</td></tr></tbody>
+            <tbody id="live-readings-body"><tr><td colspan="7" class="table-empty">Loading readings…</td></tr></tbody>
           </table>
         </div>
       </div>
+
     </div>
   </main>
 </div>

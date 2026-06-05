@@ -8,6 +8,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
   <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="crud.css" />
   <script src="config.js"></script>
 </head>
 <body>
@@ -72,8 +73,8 @@
       </div>
 
       <!-- Summary chart -->
-      <div class="chart-card" style="margin-bottom:20px">
-        <div class="chart-header"><h3>Latest Reading per Meter</h3><span style="font-size:11px;color:var(--text-muted)">Live values from API</span></div>
+      <div class="crud-summary-card">
+        <div class="chart-header"><h3>Latest Reading per Meter</h3><span style="font-size:11px;color:#4a5568">Live values from API</span></div>
         <canvas id="chart-crud-summary" height="80"></canvas>
       </div>
 
@@ -92,56 +93,63 @@
 
       <!-- READINGS PANEL -->
       <div class="crud-panel active" id="crud-panel-readings">
-        <div class="crud-panel-header">
-          <div class="crud-panel-title"><h3>Meter Readings</h3><span class="crud-count" id="readings-count">–</span></div>
-          <button class="btn-crud-create" onclick="openCreateReading()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Ingest Reading</button>
+        <div class="crud-panel-card">
+          <div class="crud-panel-header">
+            <div class="crud-panel-title"><h3>Meter Readings</h3><span class="crud-count" id="readings-count">–</span></div>
+            <button class="btn-crud-create" onclick="openCreateReading()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Ingest Reading</button>
+          </div>
+          <div class="crud-filter-row">
+            <select id="crud-meter-filter" onchange="loadCrudReadings()">
+              <option value="SMT-W-0041">SMT-W-0041 – Kitchen Water</option>
+              <option value="SMT-W-0042">SMT-W-0042 – Garden Water</option>
+              <option value="SMT-E-0087">SMT-E-0087 – Energy Board</option>
+            </select>
+            <input type="number" id="crud-readings-limit" value="20" min="5" max="100" style="width:80px" onchange="loadCrudReadings()" />
+            <label style="color:#94a3b8;font-size:12px">rows</label>
+          </div>
+          <div class="readings-table-wrap">
+            <table class="readings-table">
+              <thead><tr><th>ID</th><th>Meter</th><th>Type</th><th>Value</th><th>Pressure</th><th>Quality</th><th>Recorded At</th><th>Actions</th></tr></thead>
+              <tbody id="crud-readings-body"><tr><td colspan="8" class="table-empty">Select a meter — data loads automatically</td></tr></tbody>
+            </table>
+          </div>
+          <div class="crud-pagination" id="crud-readings-pagination"></div>
         </div>
-        <div class="crud-filter-row">
-          <select id="crud-meter-filter" onchange="loadCrudReadings()">
-            <option value="SMT-W-0041">SMT-W-0041 – Kitchen Water</option>
-            <option value="SMT-W-0042">SMT-W-0042 – Garden Water</option>
-            <option value="SMT-E-0087">SMT-E-0087 – Energy Board</option>
-          </select>
-          <input type="number" id="crud-readings-limit" value="20" min="5" max="100" style="width:80px" onchange="loadCrudReadings()" />
-          <label style="color:var(--text-secondary);font-size:12px">rows</label>
-        </div>
-        <div class="readings-table-wrap">
-          <table class="readings-table">
-            <thead><tr><th>ID</th><th>Meter</th><th>Type</th><th>Value</th><th>Pressure</th><th>Quality</th><th>Recorded At</th><th>Actions</th></tr></thead>
-            <tbody id="crud-readings-body"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Select a meter and loading will begin…</td></tr></tbody>
-          </table>
-        </div>
-        <div class="crud-pagination" id="crud-readings-pagination"></div>
       </div>
 
       <!-- METERS PANEL -->
       <div class="crud-panel" id="crud-panel-meters">
-        <div class="crud-panel-header">
-          <div class="crud-panel-title"><h3>Smart Meters</h3><span class="crud-count" id="meters-crud-count">–</span></div>
-          <button class="btn-crud-create" onclick="openCreateMeter()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Register Meter</button>
-        </div>
-        <div class="readings-table-wrap">
-          <table class="readings-table">
-            <thead><tr><th>Meter ID</th><th>Owner</th><th>Type</th><th>Location</th><th>Status</th><th>Latest Value</th><th>Last Seen</th><th>Actions</th></tr></thead>
-            <tbody id="crud-meters-body"><tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:24px">Loading meters…</td></tr></tbody>
-          </table>
+        <div class="crud-panel-card">
+          <div class="crud-panel-header">
+            <div class="crud-panel-title"><h3>Smart Meters</h3><span class="crud-count" id="meters-crud-count">–</span></div>
+            <button class="btn-crud-create" onclick="openCreateMeter()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Register Meter</button>
+          </div>
+          <div class="readings-table-wrap">
+            <table class="readings-table">
+              <thead><tr><th>Meter ID</th><th>Owner</th><th>Type</th><th>Location</th><th>Status</th><th>Latest Value</th><th>Last Seen</th><th>Actions</th></tr></thead>
+              <tbody id="crud-meters-body"><tr><td colspan="8" class="table-empty">Loading meters…</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       <!-- ALERTS PANEL -->
       <div class="crud-panel" id="crud-panel-alerts">
-        <div class="crud-panel-header">
-          <div class="crud-panel-title"><h3>Alerts</h3><span class="crud-count" id="alerts-crud-count">–</span></div>
-          <button class="btn-crud-create" onclick="openCreateAlert()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Create Alert</button>
-        </div>
-        <div class="readings-table-wrap">
-          <table class="readings-table">
-            <thead><tr><th>Title</th><th>Type</th><th>Severity</th><th>Meter</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
-            <tbody id="crud-alerts-body"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px">Loading alerts…</td></tr></tbody>
-          </table>
+        <div class="crud-panel-card">
+          <div class="crud-panel-header">
+            <div class="crud-panel-title"><h3>Alerts</h3><span class="crud-count" id="alerts-crud-count">–</span></div>
+            <button class="btn-crud-create" onclick="openCreateAlert()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Create Alert</button>
+          </div>
+          <div class="readings-table-wrap">
+            <table class="readings-table">
+              <thead><tr><th>Title</th><th>Type</th><th>Severity</th><th>Meter</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+              <tbody id="crud-alerts-body"><tr><td colspan="7" class="table-empty">Loading alerts…</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
+
   </main>
 </div>
 
